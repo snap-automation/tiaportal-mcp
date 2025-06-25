@@ -1,6 +1,6 @@
 # TIA-Portal MCP-Server
 
-A Visual Studio Code extension to connect to Siemens TIA Portal and interact with TIA Portal projects directly from VS Code with GitHub Copilot.
+A MCP server to connect to Siemens TIA Portal and interact with TIA Portal projects directly from VS Code with GitHub Copilot.
 
 ## Features
 
