@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel;
+using System.IO;
+using System.Text.RegularExpressions;
 using ModelContextProtocol.Server;
 using TiaMcpServer.Siemens;
 
@@ -79,12 +81,37 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Open a TIA Portal project")]
+        [McpServerTool, Description("Open a TIA Portal project/session")]
         public static string OpenProject(string projectPath)
         {
             try
             {
-                if (_portal.OpenProject(projectPath))
+                _portal.CloseProject();
+
+                // get project extension
+                string extension = Path.GetExtension(projectPath).ToLowerInvariant();
+
+                // use regex to check if extension is .ap\d+ or .als\d+
+                if (!Regex.IsMatch(extension, @"^\.ap\d+$") &&
+                    !Regex.IsMatch(extension, @"^\.als\d+$"))
+                {
+                    return JsonRpcMessageWrapper.ToJson(1, false, "Invalid project file extension. Use .apXX for projects or .alsXX for sessions, where XX=18,19,20,....");
+                }
+
+                bool success = false;
+                // switch case extension
+                switch (extension)
+                {
+                    case ".ap20":
+                        success = _portal.OpenProject(projectPath);
+                        break;
+
+                    case ".als20":
+                        success = _portal.OpenSession(projectPath);
+                        break;
+                }
+
+                if (success)
                 {
                     return JsonRpcMessageWrapper.ToJson(1, "Project opened successfully.");
                 }
