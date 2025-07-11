@@ -1,4 +1,5 @@
 ﻿using Siemens.Collaboration.Net;
+using System.Threading.Tasks;
 
 namespace TiaMcpServer.Siemens
 {
@@ -14,6 +15,19 @@ namespace TiaMcpServer.Siemens
 
             // Initialize the Openness API with the specified TIA Portal major version
             Api.Global.Openness().Initialize(tiaMajorVersion: tiaMajorVersion);
+        }
+
+        public static async Task<bool> IsUserInGroup()
+        {
+            if (Api.Global.Openness().IsUserInGroup())
+            {
+                // user is in group
+                return true;
+            }
+            else
+            {
+                return await Api.Global.Openness().AddUserToGroupAsync();
+            }
         }
     }
 }

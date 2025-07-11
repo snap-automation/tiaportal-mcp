@@ -12,8 +12,15 @@ namespace TiaMcpServer
             // Initialize Openness API with the default TIA Portal major version (20)
             Openness.Initialize();
 
-            // Run the host with injected services and TIA Portal tools
-            await RunHost();
+            // Ensure user is in user group 'Siemens TIA Openness'
+            if (await Openness.IsUserInGroup())
+            {
+                await RunHost();
+            }
+            else
+            {
+                System.Console.WriteLine("User is not in the required group. Exiting...");
+            }
         }
 
         public static async Task RunHost()
