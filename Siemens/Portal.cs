@@ -24,9 +24,9 @@ namespace TiaMcpServer.Siemens
         // closing parantheses for regex characters ommitted, because they are not relevant for regex detection
         private readonly char[] _regexChars = ['.', '^', '$', '*', '+', '?', '(', '[', '{', '\\', '|'];
 
-        private TiaPortal? _tiaPortal;
+        private TiaPortal? _portal;
         private ProjectBase? _project;
-        private LocalSession? _localSession;
+        private LocalSession? _session;
 
         #region helper for mcp server
 
@@ -40,13 +40,13 @@ namespace TiaMcpServer.Siemens
                 }
 
                 // Check if the project is a valid Project instance
-                if ((_localSession == null) && (_project is Project))
+                if ((_session == null) && (_project is Project))
                 {
                     return true;
                 }
 
                 // If it's a MultiuserProject, we can also check its validity
-                if ((_localSession != null) && (_project is MultiuserProject))
+                if ((_session != null) && (_project is MultiuserProject))
                 {
                     return true;
                 }
@@ -59,7 +59,7 @@ namespace TiaMcpServer.Siemens
         {
             get
             {
-                return _localSession != null;
+                return _session != null;
             }
         }
 
@@ -67,7 +67,7 @@ namespace TiaMcpServer.Siemens
         {
             get
             {
-                return _localSession == null;
+                return _session == null;
             }
         }
 
@@ -102,7 +102,7 @@ namespace TiaMcpServer.Siemens
 
             try
             {
-                _tiaPortal?.Dispose();
+                _portal?.Dispose();
             }
             catch (Exception)
             {
@@ -118,17 +118,21 @@ namespace TiaMcpServer.Siemens
         {
             try
             {
+                _project = null;
+                _session = null;
+                _portal = null;
+
                 // connect to running TIA Portal
                 var processes = TiaPortal.GetProcesses();
                 if (processes.Any())
                 {
-                    _tiaPortal = processes.First().Attach();
+                    _portal = processes.First().Attach();
 
                     return true;
                 }
 
                 // start new TIA Portal
-                _tiaPortal = new TiaPortal(TiaPortalMode.WithUserInterface);
+                _portal = new TiaPortal(TiaPortalMode.WithUserInterface);
 
                 return true;
             }
@@ -140,7 +144,7 @@ namespace TiaMcpServer.Siemens
 
         public bool IsConnected()
         {
-            return _tiaPortal != null;
+            return _portal != null;
         }
 
         public void DisconnectPortal()
@@ -148,9 +152,10 @@ namespace TiaMcpServer.Siemens
             try
             {
                 _project = null;
+                _session = null;
 
-                _tiaPortal?.Dispose();
-                _tiaPortal = null;
+                _portal?.Dispose();
+                _portal = null;
             }
             catch (Exception)
             {
@@ -160,20 +165,44 @@ namespace TiaMcpServer.Siemens
 
         #endregion
 
+        #region status
+
+        public string GetState()
+        {
+            string status = "TIA-Portal MCP server state";
+
+            status += "\n- " + (_portal == null ? "Portal: disconnected" : "Portal: connected");
+
+            if (_session == null)
+            {
+                status += "\n- " + (_project == null ? "Project: -" : $"Project: '{_project.Name}'");
+                status += "\n- Session: -";
+            }
+            else
+            {
+                status += "\n- Project: -";
+                status += $"\n- Session: '{_session.Project.Name}'";
+            }
+
+            return status;
+        }
+
+        #endregion
+
         #region project
 
         public List<string> GetOpenProjects()
         {
-            if (_tiaPortal == null)
+            if (_portal == null)
             {
                 return [];
             }
 
             var projects = new List<string>();
 
-            if (_tiaPortal.Projects != null)
+            if (_portal.Projects != null)
             {
-                foreach (var project in _tiaPortal.Projects)
+                foreach (var project in _portal.Projects)
                 {
                     projects.Add(project.Name);
                 }
@@ -184,7 +213,7 @@ namespace TiaMcpServer.Siemens
 
         public bool OpenProject(string projectPath)
         {
-            if (_tiaPortal == null)
+            if (_portal == null)
             {
                 return false;
             }
@@ -195,6 +224,12 @@ namespace TiaMcpServer.Siemens
                 _project = null;
             }
 
+            if (_session != null)
+            {
+                _session.Close();
+                _session = null;
+            }
+
             try
             {
                 var openProjects = GetOpenProjects();
@@ -203,14 +238,14 @@ namespace TiaMcpServer.Siemens
                 if (openProjects.Contains(projectName))
                 {
                     // Project is already open
-                    _project = _tiaPortal.Projects.FirstOrDefault(p => p.Name == projectName);
+                    _project = _portal.Projects.FirstOrDefault(p => p.Name == projectName);
 
                     return _project != null;
                 }
                 else
                 {
                     // see [5.3.1 Projekt öffnen, S.113]
-                    _project = _tiaPortal.Projects.OpenWithUpgrade(new FileInfo(projectPath));
+                    _project = _portal.Projects.OpenWithUpgrade(new FileInfo(projectPath));
 
                     return _project != null;
                 }
@@ -266,7 +301,7 @@ namespace TiaMcpServer.Siemens
 
         public List<string> GetOpenSessions()
         {
-            if (_tiaPortal == null)
+            if (_portal == null)
             {
                 return [];
             }
@@ -274,9 +309,9 @@ namespace TiaMcpServer.Siemens
             var sessions = new List<string>();
 
 
-            if (_tiaPortal.LocalSessions != null)
+            if (_portal.LocalSessions != null)
             {
-                foreach (var session in _tiaPortal.LocalSessions)
+                foreach (var session in _portal.LocalSessions)
                 {
                     sessions.Add(session.Project.Name);
                 }
@@ -287,16 +322,16 @@ namespace TiaMcpServer.Siemens
 
         public bool OpenSession(string localSessionPath)
         {
-            if (_tiaPortal == null)
+            if (_portal == null)
             {
                 return false;
             }
 
-            if (_localSession != null)
+            if (_session != null)
             {
                 _project = null;
-                _localSession?.Close();
-                _localSession = null;
+                _session?.Close();
+                _session = null;
             }
 
             try
@@ -308,21 +343,21 @@ namespace TiaMcpServer.Siemens
                 if (openSessions.Contains(sessionName))
                 {
                     // Session is already open  
-                    _localSession = _tiaPortal.LocalSessions.FirstOrDefault(s => s.Project.Name == sessionName);
-                    if (_localSession != null)
+                    _session = _portal.LocalSessions.FirstOrDefault(s => s.Project.Name == sessionName);
+                    if (_session != null)
                     {
                         // Correctly cast MultiuserProject to Project  
-                        _project = _localSession.Project;
+                        _project = _session.Project;
                         return _project != null;
                     }
                 }
                 else
                 {
-                    _localSession = _tiaPortal.LocalSessions.Open(new FileInfo(localSessionPath));
-                    if (_localSession != null)
+                    _session = _portal.LocalSessions.Open(new FileInfo(localSessionPath));
+                    if (_session != null)
                     {
                         // Correctly cast MultiuserProject to Project  
-                        _project = _localSession.Project;
+                        _project = _session.Project;
                         return _project != null;
                     }
                 }
@@ -337,13 +372,13 @@ namespace TiaMcpServer.Siemens
 
         public bool SaveSession()
         {
-            if (_localSession == null)
+            if (_session == null)
             {
                 return false;
             }
 
             // Save session
-            _localSession?.Save();
+            _session?.Save();
 
             return true;
         }
@@ -361,14 +396,14 @@ namespace TiaMcpServer.Siemens
 
         public bool CloseSession()
         {
-            if (_localSession == null)
+            if (_session == null)
             {
                 return false;
             }
 
             _project = null;
-            _localSession.Close();
-            _localSession = null;
+            _session.Close();
+            _session = null;
 
             return true;
         }
@@ -858,7 +893,7 @@ namespace TiaMcpServer.Siemens
                     var group = GetPlcBlockGroupByPath(softwarePath, path);
                     if (group == null)
                     {
-                        return false; // Group not found
+                        return false;
                     }
 
                     var block = group.Blocks.FirstOrDefault(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
@@ -914,7 +949,7 @@ namespace TiaMcpServer.Siemens
                     var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
                     if (group == null)
                     {
-                        return false; // Group not found
+                        return false;
                     }
 
                     try
@@ -963,7 +998,7 @@ namespace TiaMcpServer.Siemens
                     var group = GetPlcTypeGroupByPath(softwarePath, path);
                     if (group == null)
                     {
-                        return false; // Group not found
+                        return false;
                     }
 
                     var type = group.Types.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
@@ -1012,7 +1047,7 @@ namespace TiaMcpServer.Siemens
                     var group = GetPlcTypeGroupByPath(softwarePath, groupPath);
                     if (group == null)
                     {
-                        return false; // Group not found
+                        return false;
                     }
 
                     try
@@ -1502,7 +1537,7 @@ namespace TiaMcpServer.Siemens
                     if (group != null)
                     {
                         devices = group.Devices;
-                        if(devices != null)
+                        if (devices != null)
                         {
                             deviceItem = GetDeviceItemFromDevice(pathSegments, devices, index + 1);
                         }
@@ -1517,7 +1552,7 @@ namespace TiaMcpServer.Siemens
                         devices = group.Devices;
                     }
                 }
-                else 
+                else
                 {
                     return deviceItem;
                 }
@@ -1532,7 +1567,7 @@ namespace TiaMcpServer.Siemens
             string nextSegment = index + 1 < pathSegments.Length ? pathSegments[index + 1] : string.Empty;
 
             DeviceItem? deviceItem = null;
-            
+
             // a pc based plc has a Device.Name = 'PC-System_1' or something like that, which is visible in the TIA-Portal IDE
             // use segment to find device
             var device = devices.FirstOrDefault(d => d.Name.Equals(segment, StringComparison.OrdinalIgnoreCase));
@@ -1581,7 +1616,7 @@ namespace TiaMcpServer.Siemens
 
                     if (currentGroup == null)
                     {
-                        return null; // Group not found !
+                        return null;
                     }
                 }
 
@@ -1616,7 +1651,7 @@ namespace TiaMcpServer.Siemens
 
                     if (currentGroup == null)
                     {
-                        return null; // Group not found !
+                        return null;
                     }
                 }
 
