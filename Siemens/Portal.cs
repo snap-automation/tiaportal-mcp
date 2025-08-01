@@ -6,6 +6,7 @@ using Siemens.Engineering.HmiUnified.HmiLogging.HmiLoggingCommon;
 using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using Siemens.Engineering.Multiuser;
+using Siemens.Engineering.Safety;
 using Siemens.Engineering.SW;
 using Siemens.Engineering.SW.Blocks;
 using Siemens.Engineering.SW.Types;
@@ -13,7 +14,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Net;
 using System.Reflection;
+using System.Security;
 using System.Text;
 using System.Text.RegularExpressions;
 
@@ -147,7 +150,7 @@ namespace TiaMcpServer.Siemens
             return _portal != null;
         }
 
-        public void DisconnectPortal()
+        public bool DisconnectPortal()
         {
             try
             {
@@ -156,35 +159,29 @@ namespace TiaMcpServer.Siemens
 
                 _portal?.Dispose();
                 _portal = null;
+
+                return true;
             }
             catch (Exception)
             {
                 // Handle exception if needed, e.g., log it
             }
+
+            return false;
         }
 
         #endregion
 
         #region status
 
-        public string GetState()
+        public object GetState()
         {
-            string status = "TIA-Portal MCP server state";
-
-            status += "\n- " + (_portal == null ? "Portal: disconnected" : "Portal: connected");
-
-            if (_session == null)
-            {
-                status += "\n- " + (_project == null ? "Project: -" : $"Project: '{_project.Name}'");
-                status += "\n- Session: -";
-            }
-            else
-            {
-                status += "\n- Project: -";
-                status += $"\n- Session: '{_session.Project.Name}'";
-            }
-
-            return status;
+            return new {
+                timestamp = DateTime.UtcNow.ToString("O"),
+                portal = _portal != null ? "connected" : "disconnected",
+                project = _project != null ? _project.Name : "-",
+                session = _session != null ? _session.Project.Name : "-"
+            };
         }
 
         #endregion
@@ -254,6 +251,31 @@ namespace TiaMcpServer.Siemens
             {
                 return false;
             }
+        }
+
+        public object? GetProjectInfo()
+        {
+            if (_portal == null)
+            {
+                return null;
+            }
+
+            if (_project == null)
+            {
+                return null;
+            }
+
+            var info = new
+            {
+                Name = _project.Name,
+                Path = _project.Path,
+                Type = _project.GetType().Name,
+                IsMultiuserProject = _project is MultiuserProject,
+                IsLocalSession = _session != null,
+                IsLocalProject = _session == null
+            };
+
+            return info;
         }
 
         public bool SaveProject()
@@ -571,17 +593,17 @@ namespace TiaMcpServer.Siemens
                 return [];
             }
 
-            var devices = new List<string>();
+            var list = new List<string>();
 
             if (_project?.Devices != null)
             {
                 foreach (Device device in _project.Devices)
                 {
-                    devices.Add(device.Name);
+                    list.Add(device.Name);
                 }
             }
 
-            return devices;
+            return list;
         }
 
         public Device? GetDevice(string devicePath)
@@ -611,15 +633,36 @@ namespace TiaMcpServer.Siemens
 
         #region software
 
-        public string CompileSoftware(string softwarePath)
+        public string CompileSoftware(string softwarePath, string password = "")
         {
             if (_project == null)
             {
-                return "Error";
+                return "Error, no project";
             }
 
-            // var plcSoftware = GetFirstPlcSoftware(devicePath);
             var softwareContainer = GetSoftwareContainer(softwarePath);
+
+            if(!string.IsNullOrEmpty(password))
+            {
+                var deviceItem = softwareContainer?.Parent as DeviceItem;
+
+                var admin = deviceItem?.GetService<SafetyAdministration>();
+                if (admin != null)
+                {
+                    if (!admin.IsLoggedOnToSafetyOfflineProgram)
+                    {
+                        SecureString secString = new NetworkCredential("",password).SecurePassword;
+                        try
+                        {
+                            admin.LoginToSafetyOfflineProgram(secString);
+                        }
+                        catch (Exception)
+                        {
+                            return "Error, login to safety offline program failed";
+                        }
+                    }
+                }
+            }
 
             if (softwareContainer?.Software is PlcSoftware plcSoftware)
             {
@@ -633,7 +676,7 @@ namespace TiaMcpServer.Siemens
                 }
                 catch (Exception)
                 {
-                    return "Error";
+                    return "Error, compiling failed";
                 }
             }
 
@@ -747,7 +790,7 @@ namespace TiaMcpServer.Siemens
                 return [];
             }
 
-            var blocks = new List<string>();
+            var list = new List<string>();
             try
             {
                 var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -757,7 +800,7 @@ namespace TiaMcpServer.Siemens
 
                     if (group != null)
                     {
-                        GetBlocksRecursive(group, blocks, regexName);
+                        GetBlocksRecursive(group, list, regexName);
                     }
                 }
             }
@@ -766,7 +809,7 @@ namespace TiaMcpServer.Siemens
                 // Console.WriteLine($"Error getting blocks: {ex.Message}");
             }
 
-            return blocks;
+            return list;
         }
 
         public List<string> GetTypes(string softwarePath, string regexName = "")
@@ -776,7 +819,7 @@ namespace TiaMcpServer.Siemens
                 return [];
             }
 
-            var types = new List<string>();
+            var list = new List<string>();
             try
             {
                 var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -786,7 +829,7 @@ namespace TiaMcpServer.Siemens
 
                     if (group != null)
                     {
-                        GetTypesRecursive(group, types, regexName);
+                        GetTypesRecursive(group, list, regexName);
                     }
                 }
             }
@@ -795,10 +838,10 @@ namespace TiaMcpServer.Siemens
                 // Console.WriteLine($"Error getting user defined types: {ex.Message}");
             }
 
-            return types;
+            return list;
         }
 
-        private bool GetBlocksRecursive(PlcBlockGroup group, List<string> result, string regexName = "")
+        private bool GetBlocksRecursive(PlcBlockGroup group, List<string> list, string regexName = "")
         {
             var anySuccess = false;
 
@@ -821,7 +864,7 @@ namespace TiaMcpServer.Siemens
 
                     var groupPath = GetPlcBlockGroupPath(group);
 
-                    result.Add($"{groupPath}/{block.Name}, ({block.ProgrammingLanguage}), {group.Name}");
+                    list.Add($"{groupPath}/{block.Name}, '{block.ModifiedDate}'");
 
                     anySuccess = true;
                 }
@@ -829,13 +872,13 @@ namespace TiaMcpServer.Siemens
 
             foreach (var subgroup in group.Groups)
             {
-                anySuccess = GetBlocksRecursive(subgroup, result, regexName);
+                anySuccess = GetBlocksRecursive(subgroup, list, regexName);
             }
 
             return anySuccess;
         }
 
-        private bool GetTypesRecursive(PlcTypeGroup group, List<string> result, string regexName = "")
+        private bool GetTypesRecursive(PlcTypeGroup group, List<string> list, string regexName = "")
         {
             var anySuccess = false;
 
@@ -858,7 +901,7 @@ namespace TiaMcpServer.Siemens
 
                     var groupPath = GetPlcTypeGroupPath(group);
 
-                    result.Add($"{groupPath}/{type.Name}, {group.Name}");
+                    list.Add($"{groupPath}/{type.Name}, '{type.ModifiedDate}'");
 
                     anySuccess = true;
                 }
@@ -867,7 +910,7 @@ namespace TiaMcpServer.Siemens
 
             foreach (PlcTypeGroup subgroup in group.Groups)
             {
-                anySuccess = GetTypesRecursive(subgroup, result, regexName);
+                anySuccess = GetTypesRecursive(subgroup, list, regexName);
             }
 
             return anySuccess;
@@ -907,7 +950,7 @@ namespace TiaMcpServer.Siemens
 
                             try
                             {
-                                // Delete if already exists
+
                                 if (File.Exists(exportPath))
                                 {
                                     File.Delete(exportPath);
@@ -1008,6 +1051,7 @@ namespace TiaMcpServer.Siemens
 
                         try
                         {
+
                             if (File.Exists(exportPath))
                             {
                                 File.Delete(exportPath);
@@ -1156,6 +1200,7 @@ namespace TiaMcpServer.Siemens
                     var path = Path.Combine(exportPath, $"{block.Name}.xml");
                     try
                     {
+
                         if (File.Exists(path))
                         {
                             File.Delete(path);
@@ -1176,11 +1221,6 @@ namespace TiaMcpServer.Siemens
             foreach (var subgroup in group.Groups)
             {
                 var subPath = Path.Combine(exportPath, subgroup.Name);
-
-                if (!Directory.Exists(subPath))
-                {
-                    Directory.CreateDirectory(subPath);
-                }
 
                 anySuccess = ExportBlocksRecursive(subgroup, subPath, regexName) || anySuccess;
             }
@@ -1213,6 +1253,7 @@ namespace TiaMcpServer.Siemens
                     var path = Path.Combine(exportPath, $"{type.Name}.xml");
                     try
                     {
+
                         if (File.Exists(path))
                         {
                             File.Delete(path);
@@ -1233,10 +1274,6 @@ namespace TiaMcpServer.Siemens
             foreach (PlcTypeGroup subgroup in group.Groups)
             {
                 var subPath = Path.Combine(exportPath, subgroup.Name);
-                if (!Directory.Exists(subPath))
-                {
-                    Directory.CreateDirectory(subPath);
-                }
 
                 anySuccess = ExportTypesRecursive(subgroup, subPath, regexName) || anySuccess;
             }

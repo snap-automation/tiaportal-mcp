@@ -1,5 +1,10 @@
 # Change Log
 
+## [0.0.8] - 2025-08-01
+
+- improved jsonrpc responses
+- updated dependencies
+
 ## [0.0.7] - 2025-07-18
 
 - new GetState()

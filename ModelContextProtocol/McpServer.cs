@@ -1,9 +1,11 @@
-﻿using System;
+﻿using ModelContextProtocol.Server;
+using Siemens.Engineering.CrossReference;
+using Siemens.Engineering.HW;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Text.RegularExpressions;
-using ModelContextProtocol.Server;
 using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.ModelContextProtocol
@@ -22,16 +24,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ConnectPortal())
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, "Connected to TIA-Portal successfully", false);
+                    return JsonRpcMessage.SuccessData(1, true, "Connected to TIA-Portal");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, "Failed to connect to TIA-Portal", true);
+                    return JsonRpcMessage.Error(1, -32000, "Failed to connect to TIA-Portal");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error connecting to TIA-Portal: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, "Failed to connect to TIA-Portal", ex.Message);
             }
         }
 
@@ -42,11 +44,11 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 bool isConnected = _portal.IsConnected();
 
-                return JsonRpcMessageWrapper.ToJson(1, isConnected, false);
+                return JsonRpcMessage.SuccessData(1, isConnected, $"IsConnected={isConnected}");
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error checking connection: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, "Failed checking connection", ex.Message);
             }
         }
 
@@ -55,12 +57,18 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                _portal.DisconnectPortal();
-                return JsonRpcMessageWrapper.ToJson(1, "Disconnected from TIA-Portal successfully", false);
+                if (_portal.DisconnectPortal())
+                {
+                    return JsonRpcMessage.SuccessData(1, true, "Disconnected from TIA-Portal");
+                }
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, "Failed disconnecting from TIA-Portal");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error disconnecting from TIA-Portal: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, "Failed disconnecting from TIA-Portal", ex.Message);
             }
         }
 
@@ -74,16 +82,13 @@ namespace TiaMcpServer.ModelContextProtocol
             try
             {
                 var state = _portal.GetState();
-                if (string.IsNullOrEmpty(state))
-                {
-                    return JsonRpcMessageWrapper.ToJson(1, "TIA-Portal MCP server state\n- Failed to retrieve state", true);
-                }
 
-                return JsonRpcMessageWrapper.ToJson(1, state, false);
+                return JsonRpcMessage.SuccessData(1, state, "TIA-Portal MCP server state");
+
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving TIA-Portal MCP server state: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, "Failed to retrieve TIA-Portal MCP server state", ex.Message);
             }
         }
 
@@ -96,15 +101,15 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var projects = _portal.GetOpenProjects();
+                var list = _portal.GetOpenProjects();
 
-                projects.AddRange(_portal.GetOpenSessions());
+                list.AddRange(_portal.GetOpenSessions());
 
-                return JsonRpcMessageWrapper.ToJson(1, projects, false);
+                return JsonRpcMessage.SuccessList<string>(1, list, "Open projects/sessions");
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving open projects: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, "Failed retrieving open projects", ex.Message);
             }
         }
 
@@ -123,7 +128,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 if (!Regex.IsMatch(extension, @"^\.ap\d+$") &&
                     !Regex.IsMatch(extension, @"^\.als\d+$"))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, "Invalid project file extension. Use .apXX for projects or .alsXX for sessions, where XX=18,19,20,....", false);
+                    return JsonRpcMessage.Error(1, -32000, "Invalid project file extension. Use .apXX for projects or .alsXX for sessions, where XX=18,19,20,....");
                 }
 
                 bool success = false;
@@ -139,16 +144,16 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (success)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Project '{path}' opened successfully", false);
+                    return JsonRpcMessage.SuccessData(1, success, $"Project '{path}' opened");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to open project '{path}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed to open project '{path}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error opening project '{path}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed to open project '{path}'", ex.Message);
             }
         }
 
@@ -161,28 +166,28 @@ namespace TiaMcpServer.ModelContextProtocol
                 {
                     if (_portal.SaveSession())
                     {
-                        return JsonRpcMessageWrapper.ToJson(1, "Local session saved successfully", false);
+                        return JsonRpcMessage.SuccessData(1, true, "Local session saved");
                     }
                     else
                     {
-                        return JsonRpcMessageWrapper.ToJson(1, "Failed to save local session", true);
+                        return JsonRpcMessage.Error(1, -32000, "Failed to save local session");
                     }
                 }
                 else
                 {
                     if (_portal.SaveProject())
                     {
-                        return JsonRpcMessageWrapper.ToJson(1, "Local project saved successfully", false);
+                        return JsonRpcMessage.SuccessData(1, true, "Local project saved");
                     }
                     else
                     {
-                        return JsonRpcMessageWrapper.ToJson(1, "Failed to save project", true);
+                        return JsonRpcMessage.Error(1, -32000, "Failed to save project");
                     }
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error saving local project/session: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed saving local project/session", ex.Message);
             }
         }
 
@@ -194,24 +199,24 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.IsLocalSession)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Cannot save local session as '{newProjectPath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Cannot save local session as '{newProjectPath}'");
                 }
                 else
                 {
                     if (_portal.SaveAsProject(newProjectPath))
                     {
-                        return JsonRpcMessageWrapper.ToJson(1, $"Local project saved successfully as '{newProjectPath}'", false);
+                        return JsonRpcMessage.SuccessData(1, true, $"Local project saved as '{newProjectPath}'");
                     }
                     else
                     {
-                        return JsonRpcMessageWrapper.ToJson(1, $"Failed to save local project as '{newProjectPath}'", true);
+                        return JsonRpcMessage.Error(1, -32000, $"Failed saving local project as '{newProjectPath}'");
                     }
                 }
 
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error saving local project/session as '{newProjectPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed saving local project/session as '{newProjectPath}'", ex.Message);
             }
         }
 
@@ -220,23 +225,37 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
+                bool success;
+
                 if (_portal.IsLocalSession)
                 {
-                    _portal.CloseSession();
-
-                    return JsonRpcMessageWrapper.ToJson(1, "Local session closed successfully", false);
+                    success = _portal.CloseSession();
+                    if (success)
+                    {
+                        return JsonRpcMessage.SuccessData(1, success, "Local session closed");
+                    }
+                    else
+                    {
+                        return JsonRpcMessage.Error(1, -32000, "Failed closing local session");
+                    }
                 }
                 else
                 {
-                    _portal.CloseProject();
-
-                    return JsonRpcMessageWrapper.ToJson(1, "Local project closed successfully", false);
+                    success = _portal.CloseProject();
+                    if (success)
+                    {
+                        return JsonRpcMessage.SuccessData(1, success, "Local project closed");
+                    }
+                    else
+                    {
+                        return JsonRpcMessage.Error(1, -32000, "Failed closing project");
+                    }
                 }
 
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error closing local project/session: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed closing local project/session", ex.Message);
             }
         }
 
@@ -251,11 +270,18 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 var structure = _portal.GetStructure();
 
-                return JsonRpcMessageWrapper.ToJson(1, structure, false);
+                if(!string.IsNullOrEmpty(structure))
+                {
+                    return JsonRpcMessage.SuccessData(1, structure, "Project structure");
+                }
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, "Failed retrieving project structure");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving structure of current local the project/session: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving project structure", ex.Message);
             }
         }
 
@@ -267,16 +293,22 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 var device = _portal.GetDevice(devicePath);
 
-                if (device == null)
+                if (device != null)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Device '{devicePath}' not found", false);
+                    var info = new {
+                        device.Name,
+                        Description = device.ToString()
+                    };
+                    return JsonRpcMessage.SuccessData(1, info, $"Device info from '{devicePath}'");
                 }
-
-                return JsonRpcMessageWrapper.ToJson(1, device.Name, false);
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Device '{devicePath}' not found");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving device '{devicePath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving device '{devicePath}'", ex.Message);
             }
         }
 
@@ -288,16 +320,23 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 var deviceItem = _portal.GetDeviceItem(deviceItemPath);
 
-                if (deviceItem == null)
+                if (deviceItem != null)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Device item '{deviceItemPath}' not found", false);
+                    var info = new
+                    {
+                        deviceItem.Name,
+                        Description = deviceItem.ToString()
+                    };
+                    return JsonRpcMessage.SuccessData(1, info, $"Device item info from '{deviceItemPath}'");
                 }
-
-                return JsonRpcMessageWrapper.ToJson(1, deviceItem.Name, false);
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Device item '{deviceItemPath}' not found");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving device item '{deviceItemPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving device item '{deviceItemPath}'", ex.Message);
             }
         }
 
@@ -307,16 +346,18 @@ namespace TiaMcpServer.ModelContextProtocol
             try
             {
                 var list = _portal.GetDevices();
-                if (list.Count == 0)
+                if (list != null)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"No devices found in project/session", false);
+                    return JsonRpcMessage.SuccessList<string>(1, list, $"Devices");
                 }
-
-                return JsonRpcMessageWrapper.ToJson(1, list, false);
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Devices in project/session not found");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving devices: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving devices", ex.Message);
             }
         }
 
@@ -326,24 +367,24 @@ namespace TiaMcpServer.ModelContextProtocol
 
         [McpServerTool, Description("Compile the plc software")]
         public static string CompileSoftware(
-            [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath)
+            [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
+            [Description("password: the password to access adminsitration, default: no password")] string password = "")
         {
             try
             {
-                var result = _portal.CompileSoftware(softwarePath);
-
+                var result = _portal.CompileSoftware(softwarePath, password);
                 if (!result.Equals("Error"))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Software '{softwarePath}' compiled with {result}", false);
+                    return JsonRpcMessage.SuccessData(1, result, $"Software '{softwarePath}' compiled with {result}");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to compile software '{softwarePath}' with {result}", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed compiling software '{softwarePath}'", result);
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error compiling software '{softwarePath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed compiling software '{softwarePath}'", ex.Message);
             }
         }
 
@@ -359,16 +400,31 @@ namespace TiaMcpServer.ModelContextProtocol
             try
             {
                 var block = _portal.GetBlock(softwarePath, blockPath);
-                if (block == null)
+                if (block != null)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Block '{blockPath}' not found in '{softwarePath}'", false);
-                }
+                    var info = new
+                    {
+                        block.Name,
+                        block.Namespace,
+                        block.ProgrammingLanguage,
+                        block.MemoryLayout,
+                        block.IsConsistent,
+                        block.HeaderName,
+                        block.ModifiedDate,
+                        block.IsKnowHowProtected,
+                        Description = block.ToString()
+                    };
 
-                return JsonRpcMessageWrapper.ToJson(1, block.Name + ", " + block.Namespace + ", " + block.ProgrammingLanguage, false);
+                    return JsonRpcMessage.SuccessData(1, info, $"Block info from '{blockPath}' in '{softwarePath}'");
+                }
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Block '{blockPath}' in '{softwarePath}' not found");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving block '{blockPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving block '{blockPath}'", ex.Message);
             }
         }
 
@@ -380,16 +436,18 @@ namespace TiaMcpServer.ModelContextProtocol
             try
             {
                 var list = _portal.GetBlocks(softwarePath, regexName);
-                if (list.Count == 0)
+                if (list != null)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"No blocks with regex '{regexName}' found in '{softwarePath}'", false);
+                    return JsonRpcMessage.SuccessList<string>(1, list, $"Blocks");
                 }
-
-                return JsonRpcMessageWrapper.ToJson(1, list, false);
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Blocks with regex '{regexName}' in '{softwarePath}' not found");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving code blocks: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}", ex.Message);
             }
         }
 
@@ -403,16 +461,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportBlock(softwarePath, blockPath, exportPath))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Block exported successfully from '{blockPath}' to '{exportPath}'", false);
+                    return JsonRpcMessage.SuccessData(1, true, $"Block exported from '{blockPath}' to '{exportPath}'");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to export block from '{blockPath}' to '{exportPath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting block from '{blockPath}' to '{exportPath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error exporting block from '{blockPath}' to '{exportPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting block from '{blockPath}' to '{exportPath}'", ex.Message);
             }
         }
 
@@ -426,16 +484,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ImportBlock(softwarePath, groupPath, importPath))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Block imported successfully from '{importPath}' to '{groupPath}'", false);
+                    return JsonRpcMessage.SuccessData(1, true, $"Block imported from '{importPath}' to '{groupPath}'");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to import block from '{importPath}' to '{groupPath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed importing block from '{importPath}' to '{groupPath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error importing block from '{importPath}' to '{groupPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed importing block from '{importPath}' to '{groupPath}'", ex.Message);
             }
         }
 
@@ -449,16 +507,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportBlocks(softwarePath, exportPath, regexName))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Blocks '{regexName}' from '{softwarePath}' exported successfully ", false);
+                    return JsonRpcMessage.SuccessData(1, true, $"Blocks '{regexName}' from '{softwarePath}' exported");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to export blocks '{regexName}' from '{softwarePath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error exporting blocks '{regexName}' from '{softwarePath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}'", ex.Message);
             }
         }
 
@@ -474,16 +532,27 @@ namespace TiaMcpServer.ModelContextProtocol
             try
             {
                 var type = _portal.GetType(softwarePath, typePath);
-                if (type == null)
+                if (type != null)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Type '{typePath}' not found in '{softwarePath}'", false);
+                    var info = new
+                    {
+                        type.Name,
+                        type.Namespace,
+                        type.IsConsistent,
+                        type.ModifiedDate,
+                        type.IsKnowHowProtected,
+                        Description = type.ToString()
+                    };
+                    return JsonRpcMessage.SuccessData(1, info, $"Type info from '{typePath}' in '{softwarePath}'");
                 }
-
-                return JsonRpcMessageWrapper.ToJson(1, type.Name + ", " + type.Namespace, false);
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Type '{typePath}' in '{softwarePath}' not found");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving type '{typePath}' in '{softwarePath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving type '{typePath}' in '{softwarePath}'", ex.Message);
             }
         }
 
@@ -494,18 +563,20 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var types = _portal.GetTypes(softwarePath, regexName).ToArray().ToString();
+                var list = _portal.GetTypes(softwarePath, regexName);
 
-                if (string.IsNullOrEmpty(types))
+                if (list != null)
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"No types with regex '{regexName}' found in '{softwarePath}'", false);
+                    return JsonRpcMessage.SuccessList<string>(1, list, $"Types");
                 }
-
-                return JsonRpcMessageWrapper.ToJson(1, types, false);
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Types with regex '{regexName}' in '{softwarePath}' not found");
+                }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error retrieving user defined types: {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving user defined types", ex.Message);
             }
         }
 
@@ -519,16 +590,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportType(softwarePath, typePath, exportPath))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Type exported successfully from '{typePath}' to '{exportPath}'", false);
+                    return JsonRpcMessage.SuccessData(1, true, $"Type exported from '{typePath}' to '{exportPath}'");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to export type from '{typePath}' to '{exportPath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting type from '{typePath}' to '{exportPath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error exporting type from '{typePath}' to '{exportPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting type from '{typePath}' to '{exportPath}'", ex.Message);
             }
         }
 
@@ -542,16 +613,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ImportType(softwarePath, groupPath, importPath))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Type imported successfully from '{importPath}' to '{groupPath}'", false);
+                    return JsonRpcMessage.SuccessData(1, true, $"Type imported from '{importPath}' to '{groupPath}'");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to import type from '{importPath}' to '{groupPath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed importing type from '{importPath}' to '{groupPath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error importing type from '{importPath}' to '{groupPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed importing type from '{importPath}' to '{groupPath}'", ex.Message);
             }
         }
 
@@ -565,16 +636,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportTypes(softwarePath, exportPath, regexName))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Types '{regexName}' from '{softwarePath}' exported successfully", false);
+                    return JsonRpcMessage.SuccessData(1, true, $"Types '{regexName}' from '{softwarePath}' exported");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to export types '{regexName}' from '{softwarePath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting types '{regexName}' from '{softwarePath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error exporting types '{regexName}' from '{softwarePath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting types '{regexName}' from '{softwarePath}'", ex.Message);
             }
         }
 
@@ -592,16 +663,16 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportAsDocuments(softwarePath, blockPath, exportPath))
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Documents exported successfully from '{blockPath}' to '{exportPath}'", false);
+                    return JsonRpcMessage.SuccessData(1, true, $"Documents exported from '{blockPath}' to '{exportPath}'");
                 }
                 else
                 {
-                    return JsonRpcMessageWrapper.ToJson(1, $"Failed to export documents from '{blockPath}' to '{exportPath}'", true);
+                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessageWrapper.ToJson(1, $"Error exporting documents from '{blockPath}' to '{exportPath}': {ex.Message}", true);
+                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}'", ex.Message);
             }
         }
 
