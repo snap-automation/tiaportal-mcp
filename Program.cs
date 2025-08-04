@@ -1,5 +1,6 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using System;
 using System.Threading.Tasks;
 using TiaMcpServer.Siemens;
 
@@ -7,41 +8,27 @@ namespace TiaMcpServer
 {
     public class Program
     {
-        public class CliOptions
-        {
-            public int? TiaMajorVersion { get; set; }
-        }
-
-        public static CliOptions ParseArgs(string[] args)
-        {
-            var options = new CliOptions();
-            for (int i = 0; i < args.Length; i++)
-            {
-                switch (args[i].ToLowerInvariant())
-                {
-                    case "-tia-major-version":
-                    case "--tia-major-version":
-                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int v))
-                        {
-                            options.TiaMajorVersion = v;
-                            i++;
-                        }
-                        break;
-                }
-            }
-            return options;
-        }
 
         public static async Task Main(string[] args)
         {
-            var options = ParseArgs(args);
+            var options = CliOptions.ParseArgs(args);
 
             Openness.Initialize(options.TiaMajorVersion);
 
             // Ensure user is in user group 'Siemens TIA Openness'
             if (await Openness.IsUserInGroup())
             {
-                await RunHost();
+                if (options.Transport == null || options.Transport == "stdio")
+                {
+                    Console.WriteLine("Starting MCP Server with STDIO transport...");
+                    await RunStdioHost();
+                }
+                else
+                {
+                    Console.WriteLine("HTTP transport not implemented...");
+                    // requires .net8+
+                    //await RunHttpHost();
+                }
             }
             else
             {
@@ -49,7 +36,7 @@ namespace TiaMcpServer
             }
         }
 
-        public static async Task RunHost()
+        public static async Task RunStdioHost()
         {
             var builder = Host.CreateEmptyApplicationBuilder(settings: null);
 
@@ -60,5 +47,38 @@ namespace TiaMcpServer
 
             await builder.Build().RunAsync();
         }
+
+        //public static async Task RunHttpHost()
+        //{
+        //    var builder = WebApplication.CreateBuilder();
+
+        //    // MCP Server Services hinzufügen
+        //    builder.Services
+        //        .AddMcpServer()
+        //        .WithToolsFromAssembly();
+
+        //    var app = builder.Build();
+
+        //    // HTTP Endpoint für MCP
+        //    app.MapPost("/mcp", async (HttpContext context, IMcpServer mcpServer) =>
+        //    {
+        //        try
+        //        {
+        //            var requestBody = await new StreamReader(context.Request.Body).ReadToEndAsync();
+        //            var response = await mcpServer.ProcessRequestAsync(requestBody);
+
+        //            context.Response.ContentType = "application/json";
+        //            await context.Response.WriteAsync(response);
+        //        }
+        //        catch (Exception ex)
+        //        {
+        //            context.Response.StatusCode = 500;
+        //            await context.Response.WriteAsync($"Error: {ex.Message}");
+        //        }
+        //    });
+
+        //    Console.WriteLine("MCP Server running on http://localhost:5000/mcp");
+        //    await app.RunAsync();
+        //}
     }
 }

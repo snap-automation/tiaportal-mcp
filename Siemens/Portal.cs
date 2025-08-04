@@ -176,7 +176,8 @@ namespace TiaMcpServer.Siemens
 
         public object GetState()
         {
-            return new {
+            return new
+            {
                 timestamp = DateTime.UtcNow.ToString("O"),
                 portal = _portal != null ? "connected" : "disconnected",
                 project = _project != null ? _project.Name : "-",
@@ -633,16 +634,33 @@ namespace TiaMcpServer.Siemens
 
         #region software
 
-        public string CompileSoftware(string softwarePath, string password = "")
+        public PlcSoftware? GetPlcSoftware(string softwarePath)
         {
             if (_project == null)
             {
-                return "Error, no project";
+                return null;
             }
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
 
-            if(!string.IsNullOrEmpty(password))
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
+            {
+                return plcSoftware;
+            }
+
+            return null;
+        }
+
+        public CompilerResult? CompileSoftware(string softwarePath, string password = "")
+        {
+            if (_project == null)
+            {
+                return null; // "Error, no project";
+            }
+
+            var softwareContainer = GetSoftwareContainer(softwarePath);
+
+            if (!string.IsNullOrEmpty(password))
             {
                 var deviceItem = softwareContainer?.Parent as DeviceItem;
 
@@ -651,14 +669,14 @@ namespace TiaMcpServer.Siemens
                 {
                     if (!admin.IsLoggedOnToSafetyOfflineProgram)
                     {
-                        SecureString secString = new NetworkCredential("",password).SecurePassword;
+                        SecureString secString = new NetworkCredential("", password).SecurePassword;
                         try
                         {
                             admin.LoginToSafetyOfflineProgram(secString);
                         }
                         catch (Exception)
                         {
-                            return "Error, login to safety offline program failed";
+                            return null; // "Error, login to safety offline program failed";
                         }
                     }
                 }
@@ -671,16 +689,16 @@ namespace TiaMcpServer.Siemens
                     ICompilable compileService = plcSoftware.GetService<ICompilable>();
 
                     CompilerResult result = compileService.Compile();
-
-                    return result.State.ToString();
+                    
+                    return result;
                 }
                 catch (Exception)
                 {
-                    return "Error, compiling failed";
+                    return null; // "Error, compiling failed";
                 }
             }
 
-            return "Error";
+            return null; // "Error";
         }
 
         #endregion
@@ -916,7 +934,7 @@ namespace TiaMcpServer.Siemens
             return anySuccess;
         }
 
-        public bool ExportBlock(string softwarePath, string blockPath, string exportPath)
+        public bool ExportBlock(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
         {
             if (_project == null)
             {
@@ -943,10 +961,16 @@ namespace TiaMcpServer.Siemens
 
                     if (block != null)
                     {
-                        // check if the block is DataBlock
                         if (block is PlcBlock b)
                         {
-                            exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{b.Name}.xml");
+                            if (preservePath)
+                            {
+                                exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{b.Name}.xml");
+                            }
+                            else
+                            {
+                                exportPath = Path.Combine(exportPath, $"{b.Name}.xml");
+                            }
 
                             try
                             {
@@ -1019,7 +1043,7 @@ namespace TiaMcpServer.Siemens
             return false;
         }
 
-        public bool ExportType(string softwarePath, string typePath, string exportPath)
+        public bool ExportType(string softwarePath, string typePath, string exportPath, bool preservePath = false)
         {
             var success = false;
 
@@ -1047,7 +1071,14 @@ namespace TiaMcpServer.Siemens
                     var type = group.Types.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
                     if (type != null)
                     {
-                        exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{type.Name}.xml");
+                        if (preservePath)
+                        {
+                            exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{type.Name}.xml");
+                        }
+                        else
+                        {
+                            exportPath = Path.Combine(exportPath, $"{type.Name}.xml");
+                        }
 
                         try
                         {
@@ -1117,7 +1148,7 @@ namespace TiaMcpServer.Siemens
             return success;
         }
 
-        public bool ExportBlocks(string softwarePath, string exportPath, string regexName = "")
+        public bool ExportBlocks(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
         {
             if (_project == null)
             {
@@ -1134,7 +1165,7 @@ namespace TiaMcpServer.Siemens
 
                     if (blockGroup != null)
                     {
-                        success = ExportBlocksRecursive(blockGroup, exportPath, regexName) || success;
+                        success = ExportBlocksRecursive(exportPath, exportPath, blockGroup, regexName, preservePath) || success;
                     }
                 }
             }
@@ -1146,7 +1177,7 @@ namespace TiaMcpServer.Siemens
             return success;
         }
 
-        public bool ExportTypes(string softwarePath, string exportPath, string regexName = "")
+        public bool ExportTypes(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
         {
             var success = false;
 
@@ -1164,7 +1195,7 @@ namespace TiaMcpServer.Siemens
 
                     if (udtGroup != null)
                     {
-                        success = ExportTypesRecursive(udtGroup, exportPath, regexName) || success;
+                        success = ExportTypesRecursive(exportPath, exportPath, udtGroup, regexName, preservePath) || success;
                     }
                 }
             }
@@ -1176,7 +1207,7 @@ namespace TiaMcpServer.Siemens
             return success;
         }
 
-        private bool ExportBlocksRecursive(PlcBlockGroup group, string exportPath, string regexName = "")
+        private bool ExportBlocksRecursive(string exportPath, string subPath, PlcBlockGroup group, string regexName = "", bool preservePath = false)
         {
             var anySuccess = false;
 
@@ -1188,7 +1219,8 @@ namespace TiaMcpServer.Siemens
                     {
                         if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(block.Name, regexName, RegexOptions.IgnoreCase))
                         {
-                            continue; // Skip this block if it doesn't match the pattern
+                            // Skip this block if it doesn't match the pattern
+                            continue;
                         }
                     }
                     catch (Exception)
@@ -1197,7 +1229,17 @@ namespace TiaMcpServer.Siemens
                         continue;
                     }
 
-                    var path = Path.Combine(exportPath, $"{block.Name}.xml");
+                    var path = string.Empty;
+
+                    if (preservePath)
+                    {
+                        path = Path.Combine(subPath, group.Name.Replace('/', '\\'), $"{block.Name}.xml");
+                    }
+                    else
+                    {
+                        path = Path.Combine(exportPath, $"{block.Name}.xml");
+                    }
+
                     try
                     {
 
@@ -1220,19 +1262,18 @@ namespace TiaMcpServer.Siemens
 
             foreach (var subgroup in group.Groups)
             {
-                var subPath = Path.Combine(exportPath, subgroup.Name);
+                var newSubPath = Path.Combine(subPath, subgroup.Name);
 
-                anySuccess = ExportBlocksRecursive(subgroup, subPath, regexName) || anySuccess;
+                anySuccess = ExportBlocksRecursive(exportPath, newSubPath, subgroup, regexName, preservePath) || anySuccess;
             }
 
             return anySuccess;
         }
 
-        private bool ExportTypesRecursive(PlcTypeGroup group, string exportPath, string regexName = "")
+        private bool ExportTypesRecursive(string exportPath, string subPath, PlcTypeGroup group, string regexName = "", bool preservePath = false)
         {
             var anySuccess = false;
 
-            // Export all types in this group
             foreach (PlcType composition in group.Types)
             {
                 if (composition is PlcType type)
@@ -1241,7 +1282,8 @@ namespace TiaMcpServer.Siemens
                     {
                         if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(type.Name, regexName, RegexOptions.IgnoreCase))
                         {
-                            continue; // Skip this block if it doesn't match the pattern
+                            // Skip this block if it doesn't match the pattern
+                            continue;
                         }
                     }
                     catch (Exception)
@@ -1250,7 +1292,17 @@ namespace TiaMcpServer.Siemens
                         continue;
                     }
 
-                    var path = Path.Combine(exportPath, $"{type.Name}.xml");
+                    var path = string.Empty;
+
+                    if (preservePath)
+                    {
+                        path = Path.Combine(subPath, group.Name.Replace('/', '\\'), $"{type.Name}.xml");
+                    }
+                    else
+                    {
+                        path = Path.Combine(exportPath, $"{type.Name}.xml");
+                    }
+
                     try
                     {
 
@@ -1273,15 +1325,15 @@ namespace TiaMcpServer.Siemens
 
             foreach (PlcTypeGroup subgroup in group.Groups)
             {
-                var subPath = Path.Combine(exportPath, subgroup.Name);
+                var newSubPath = Path.Combine(subPath, subgroup.Name);
 
-                anySuccess = ExportTypesRecursive(subgroup, subPath, regexName) || anySuccess;
+                anySuccess = ExportTypesRecursive(exportPath, newSubPath, subgroup, regexName, preservePath) || anySuccess;
             }
 
             return anySuccess;
         }
 
-        public bool ExportAsDocuments(string softwarePath, string blockPath, string exportPath)
+        public bool ExportAsDocuments(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
         {
             if (_project == null)
             {
@@ -1313,14 +1365,14 @@ namespace TiaMcpServer.Siemens
                             Directory.CreateDirectory(exportPath);
                         }
 
-                        if (!string.IsNullOrEmpty(groupPath))
+                        if (preservePath && !string.IsNullOrEmpty(groupPath))
                         {
                             exportPath = Path.Combine(exportPath, groupPath);
-                        }
 
-                        if (!Directory.Exists(exportPath))
-                        {
-                            Directory.CreateDirectory(exportPath);
+                            if (!Directory.Exists(exportPath))
+                            {
+                                Directory.CreateDirectory(exportPath);
+                            }
                         }
 
                         try

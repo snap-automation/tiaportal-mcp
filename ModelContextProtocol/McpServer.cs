@@ -1,6 +1,5 @@
 ﻿using ModelContextProtocol.Server;
-using Siemens.Engineering.CrossReference;
-using Siemens.Engineering.HW;
+using Siemens.Engineering;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -270,7 +269,7 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 var structure = _portal.GetStructure();
 
-                if(!string.IsNullOrEmpty(structure))
+                if (!string.IsNullOrEmpty(structure))
                 {
                     return JsonRpcMessage.SuccessData(1, structure, "Project structure");
                 }
@@ -295,8 +294,22 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (device != null)
                 {
-                    var info = new {
+                    var attributes = new List<object>();
+
+                    foreach (var attr in device.GetAttributeInfos())
+                    {
+                        object value = device.GetAttribute(attr.Name);
+                        attributes.Add(new
+                        {
+                            attr.Name,
+                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
+                        });
+                    }
+
+                    var info = new
+                    {
                         device.Name,
+                        Attributes = attributes,
                         Description = device.ToString()
                     };
                     return JsonRpcMessage.SuccessData(1, info, $"Device info from '{devicePath}'");
@@ -322,9 +335,22 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (deviceItem != null)
                 {
+                    var attributes = new List<object>();
+
+                    foreach (var attr in deviceItem.GetAttributeInfos())
+                    {
+                        object value = deviceItem.GetAttribute(attr.Name);
+                        attributes.Add(new
+                        {
+                            attr.Name,
+                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
+                        });
+                    }
+
                     var info = new
                     {
                         deviceItem.Name,
+                        Attributes = attributes,
                         Description = deviceItem.ToString()
                     };
                     return JsonRpcMessage.SuccessData(1, info, $"Device item info from '{deviceItemPath}'");
@@ -365,6 +391,48 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region plc software
 
+        [McpServerTool, Description("Get plc software info")]
+        public static string GetSoftwareInfo(
+            [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath)
+        {
+            try
+            {
+                var software = _portal.GetPlcSoftware(softwarePath);
+                if (software != null)
+                {
+
+                    var attributes = new List<object>();
+
+                    foreach (var attr in software.GetAttributeInfos())
+                    {
+                        object value = software.GetAttribute(attr.Name);
+                        attributes.Add(new
+                        {
+                            attr.Name,
+                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
+                        });
+                    }
+
+                    var info = new
+                    {
+                        software.Name,
+                        Attributes = attributes,
+                        Description = software.ToString()
+                    };
+
+                    return JsonRpcMessage.SuccessData(1, info, $"Software info from '{softwarePath}'");
+                }
+                else
+                {
+                    return JsonRpcMessage.Error(1, -32000, $"Failed retrieving software info from '{softwarePath}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving software info from '{softwarePath}'", ex.Message);
+            }
+        }
+
         [McpServerTool, Description("Compile the plc software")]
         public static string CompileSoftware(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
@@ -373,7 +441,7 @@ namespace TiaMcpServer.ModelContextProtocol
             try
             {
                 var result = _portal.CompileSoftware(softwarePath, password);
-                if (!result.Equals("Error"))
+                if (result != null && !result.State.ToString().Equals("Error"))
                 {
                     return JsonRpcMessage.SuccessData(1, result, $"Software '{softwarePath}' compiled with {result}");
                 }
@@ -402,6 +470,18 @@ namespace TiaMcpServer.ModelContextProtocol
                 var block = _portal.GetBlock(softwarePath, blockPath);
                 if (block != null)
                 {
+                    var attributes = new List<object>();
+
+                    foreach (var attr in block.GetAttributeInfos())
+                    {
+                        object value = block.GetAttribute(attr.Name);
+                        attributes.Add(new
+                        {
+                            attr.Name,
+                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
+                        });
+                    }
+
                     var info = new
                     {
                         block.Name,
@@ -412,6 +492,7 @@ namespace TiaMcpServer.ModelContextProtocol
                         block.HeaderName,
                         block.ModifiedDate,
                         block.IsKnowHowProtected,
+                        Attributes = attributes,
                         Description = block.ToString()
                     };
 
@@ -455,11 +536,12 @@ namespace TiaMcpServer.ModelContextProtocol
         public static string ExportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath,
-            [Description("exportPath: defines the path where to export the block")] string exportPath)
+            [Description("exportPath: defines the path where to export the block")] string exportPath,
+            [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
             try
             {
-                if (_portal.ExportBlock(softwarePath, blockPath, exportPath))
+                if (_portal.ExportBlock(softwarePath, blockPath, exportPath, preservePath))
                 {
                     return JsonRpcMessage.SuccessData(1, true, $"Block exported from '{blockPath}' to '{exportPath}'");
                 }
@@ -501,11 +583,12 @@ namespace TiaMcpServer.ModelContextProtocol
         public static string ExportBlocks(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the blocks")] string exportPath,
-            [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "")
+            [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
+            [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
             try
             {
-                if (_portal.ExportBlocks(softwarePath, exportPath, regexName))
+                if (_portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath))
                 {
                     return JsonRpcMessage.SuccessData(1, true, $"Blocks '{regexName}' from '{softwarePath}' exported");
                 }
@@ -534,6 +617,18 @@ namespace TiaMcpServer.ModelContextProtocol
                 var type = _portal.GetType(softwarePath, typePath);
                 if (type != null)
                 {
+                    var attributes = new List<object>();
+
+                    foreach (var attr in type.GetAttributeInfos())
+                    {
+                        object value = type.GetAttribute(attr.Name);
+                        attributes.Add(new
+                        {
+                            attr.Name,
+                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
+                        });
+                    }
+
                     var info = new
                     {
                         type.Name,
@@ -541,6 +636,7 @@ namespace TiaMcpServer.ModelContextProtocol
                         type.IsConsistent,
                         type.ModifiedDate,
                         type.IsKnowHowProtected,
+                        Attributes = attributes,
                         Description = type.ToString()
                     };
                     return JsonRpcMessage.SuccessData(1, info, $"Type info from '{typePath}' in '{softwarePath}'");
@@ -584,11 +680,12 @@ namespace TiaMcpServer.ModelContextProtocol
         public static string ExportType(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where export the type")] string exportPath,
-            [Description("typePath: defines the path in the project structure to the type")] string typePath)
+            [Description("typePath: defines the path in the project structure to the type")] string typePath,
+            [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
             try
             {
-                if (_portal.ExportType(softwarePath, typePath, exportPath))
+                if (_portal.ExportType(softwarePath, typePath, exportPath, preservePath))
                 {
                     return JsonRpcMessage.SuccessData(1, true, $"Type exported from '{typePath}' to '{exportPath}'");
                 }
@@ -630,11 +727,12 @@ namespace TiaMcpServer.ModelContextProtocol
         public static string ExportTypes(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the types")] string exportPath,
-            [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "")
+            [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
+            [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
             try
             {
-                if (_portal.ExportTypes(softwarePath, exportPath, regexName))
+                if (_portal.ExportTypes(softwarePath, exportPath, regexName, preservePath))
                 {
                     return JsonRpcMessage.SuccessData(1, true, $"Types '{regexName}' from '{softwarePath}' exported");
                 }
@@ -657,11 +755,12 @@ namespace TiaMcpServer.ModelContextProtocol
         public static string ExportAsDocuments(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath,
-            [Description("exportPath: defines the path where to export the documents")] string exportPath)
+            [Description("exportPath: defines the path where to export the documents")] string exportPath,
+            [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
             try
             {
-                if (_portal.ExportAsDocuments(softwarePath, blockPath, exportPath))
+                if (_portal.ExportAsDocuments(softwarePath, blockPath, exportPath, preservePath))
                 {
                     return JsonRpcMessage.SuccessData(1, true, $"Documents exported from '{blockPath}' to '{exportPath}'");
                 }
