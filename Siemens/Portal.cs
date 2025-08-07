@@ -18,6 +18,7 @@ using System.Net;
 using System.Reflection;
 using System.Security;
 using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace TiaMcpServer.Siemens
@@ -174,14 +175,13 @@ namespace TiaMcpServer.Siemens
 
         #region status
 
-        public object GetState()
+        public State GetState()
         {
-            return new
+            return new State
             {
-                timestamp = DateTime.UtcNow.ToString("O"),
-                portal = _portal != null ? "connected" : "disconnected",
-                project = _project != null ? _project.Name : "-",
-                session = _session != null ? _session.Project.Name : "-"
+                IsConnected = IsConnected(),
+                Project = _project != null ? _project.Name : "-",
+                Session = _session != null ? _session.Project.Name : "-"
             };
         }
 
@@ -689,7 +689,7 @@ namespace TiaMcpServer.Siemens
                     ICompilable compileService = plcSoftware.GetService<ICompilable>();
 
                     CompilerResult result = compileService.Compile();
-                    
+
                     return result;
                 }
                 catch (Exception)
@@ -1836,4 +1836,5 @@ namespace TiaMcpServer.Siemens
 
     }
 
+    
 }

@@ -21,18 +21,19 @@ namespace TiaMcpServer
                 if (options.Transport == null || options.Transport == "stdio")
                 {
                     Console.WriteLine("Starting MCP Server with STDIO transport...");
+
                     await RunStdioHost();
                 }
                 else
                 {
                     Console.WriteLine("HTTP transport not implemented...");
-                    // requires .net8+
-                    //await RunHttpHost();
+                    // requires .net8+, but we are using .net48
+                    // await RunHttpHost();
                 }
             }
             else
             {
-                System.Console.WriteLine("User is not in the required group. Exiting...");
+                Console.WriteLine("User is not in the required group. Exiting...");
             }
         }
 
@@ -47,38 +48,5 @@ namespace TiaMcpServer
 
             await builder.Build().RunAsync();
         }
-
-        //public static async Task RunHttpHost()
-        //{
-        //    var builder = WebApplication.CreateBuilder();
-
-        //    // MCP Server Services hinzufügen
-        //    builder.Services
-        //        .AddMcpServer()
-        //        .WithToolsFromAssembly();
-
-        //    var app = builder.Build();
-
-        //    // HTTP Endpoint für MCP
-        //    app.MapPost("/mcp", async (HttpContext context, IMcpServer mcpServer) =>
-        //    {
-        //        try
-        //        {
-        //            var requestBody = await new StreamReader(context.Request.Body).ReadToEndAsync();
-        //            var response = await mcpServer.ProcessRequestAsync(requestBody);
-
-        //            context.Response.ContentType = "application/json";
-        //            await context.Response.WriteAsync(response);
-        //        }
-        //        catch (Exception ex)
-        //        {
-        //            context.Response.StatusCode = 500;
-        //            await context.Response.WriteAsync($"Error: {ex.Message}");
-        //        }
-        //    });
-
-        //    Console.WriteLine("MCP Server running on http://localhost:5000/mcp");
-        //    await app.RunAsync();
-        //}
     }
 }

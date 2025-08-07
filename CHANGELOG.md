@@ -1,5 +1,9 @@
 # Change Log
 
+## [0.0.10] - 2025-08-07
+
+- tool responses improved
+
 ## [0.0.9] - 2025-08-04
 
 - export of blocks and types with 'preservePath' option

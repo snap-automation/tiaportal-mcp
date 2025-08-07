@@ -1,9 +1,11 @@
 ﻿using ModelContextProtocol.Server;
 using Siemens.Engineering;
+using Siemens.Engineering.SW.Blocks;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using TiaMcpServer.Siemens;
 
@@ -17,77 +19,97 @@ namespace TiaMcpServer.ModelContextProtocol
         #region portal
 
         [McpServerTool, Description("Connect to TIA-Portal")]
-        public static string ConnectPortal()
+        public static ResponseConnect Connect()
         {
             try
             {
                 if (_portal.ConnectPortal())
                 {
-                    return JsonRpcMessage.SuccessData(1, true, "Connected to TIA-Portal");
+                    return new ResponseConnect
+                    {
+                        Message = "Connected to TIA-Portal",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, "Failed to connect to TIA-Portal");
+                    throw new McpException(-32000, "Failed to connect to TIA-Portal");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, "Failed to connect to TIA-Portal", ex.Message);
-            }
-        }
-
-        [McpServerTool, Description("Check if TIA-Portal is connected")]
-        public static string IsConnected()
-        {
-            try
-            {
-                bool isConnected = _portal.IsConnected();
-
-                return JsonRpcMessage.SuccessData(1, isConnected, $"IsConnected={isConnected}");
-            }
-            catch (Exception ex)
-            {
-                return JsonRpcMessage.Exception(1, -32000, "Failed checking connection", ex.Message);
+                throw new McpException(-32000, $"Failed to connect to TIA-Portal: {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Disconnect from TIA-Portal")]
-        public static string DisconnectPortal()
+        public static ResponseDisconnect Disconnect()
         {
             try
             {
                 if (_portal.DisconnectPortal())
                 {
-                    return JsonRpcMessage.SuccessData(1, true, "Disconnected from TIA-Portal");
+                    return new ResponseDisconnect
+                    {
+                        Message = "Disconnected from TIA-Portal",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, "Failed disconnecting from TIA-Portal");
+                    throw new McpException(-32000, "Failed disconnecting from TIA-Portal");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, "Failed disconnecting from TIA-Portal", ex.Message);
+                throw new McpException(-32000, $"Failed disconnecting from TIA-Portal: {ex.Message}", ex);
             }
         }
 
         #endregion
 
-        #region status
+        #region state
 
         [McpServerTool, Description("Get the state of the TIA-Portal MCP server")]
-        public static string GetState()
+        public static ResponseState GetState()
         {
             try
             {
                 var state = _portal.GetState();
 
-                return JsonRpcMessage.SuccessData(1, state, "TIA-Portal MCP server state");
+                if (state != null)
+                {
+                    return new ResponseState
+                    {
+                        Message = "TIA-Portal MCP server state retrieved",
+                        IsConnected = state.IsConnected,
+                        Project = state.Project,
+                        Session = state.Session,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
+                }
+                else
+                {
+                    throw new McpException(-32000, "Failed to retrieve TIA-Portal MCP server state");
+                }
+                
 
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, "Failed to retrieve TIA-Portal MCP server state", ex.Message);
+                throw new McpException(-32000, $"Failed to retrieve TIA-Portal MCP server state: {ex.Message}", ex);
             }
         }
 
@@ -96,7 +118,7 @@ namespace TiaMcpServer.ModelContextProtocol
         #region project/session
 
         [McpServerTool, Description("Get list of open local projects/sessions")]
-        public static string GetOpenProjects()
+        public static ResponseOpenProjects GetOpenProjects()
         {
             try
             {
@@ -104,16 +126,25 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 list.AddRange(_portal.GetOpenSessions());
 
-                return JsonRpcMessage.SuccessList<string>(1, list, "Open projects/sessions");
+                return new ResponseOpenProjects
+                {
+                    Message = "Open projects and sessions retrieved",
+                    Items = list,
+                    Meta = new JsonObject
+                    {
+                        ["timestamp"] = DateTime.Now,
+                        ["success"] = true
+                    }
+                };
             }
             catch (Exception ex)
             {
-                return JsonRpcMessage.Exception(1, -32000, "Failed retrieving open projects", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving open projects: {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Open a TIA-Portal local project/session")]
-        public static string OpenProject(
+        public static ResponseOpenProject OpenProject(
             [Description("path: defines the path where to the project/session")] string path)
         {
             try
@@ -127,7 +158,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 if (!Regex.IsMatch(extension, @"^\.ap\d+$") &&
                     !Regex.IsMatch(extension, @"^\.als\d+$"))
                 {
-                    return JsonRpcMessage.Error(1, -32000, "Invalid project file extension. Use .apXX for projects or .alsXX for sessions, where XX=18,19,20,....");
+                    throw new McpException(-32000, "Invalid project file extension. Use .apXX for projects or .alsXX for sessions, where XX=18,19,20,....");
                 }
 
                 bool success = false;
@@ -143,21 +174,29 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (success)
                 {
-                    return JsonRpcMessage.SuccessData(1, success, $"Project '{path}' opened");
+                    return new ResponseOpenProject
+                    {
+                        Message = $"Project '{path}' opened",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed to open project '{path}'");
+                    throw new McpException(-32000, $"Failed to open project '{path}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed to open project '{path}'", ex.Message);
+                throw new McpException(-32000, $"Failed to open project '{path}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Save the current TIA-Portal local project/session")]
-        public static string SaveProject()
+        public static ResponseSaveProject SaveProject()
         {
             try
             {
@@ -165,62 +204,86 @@ namespace TiaMcpServer.ModelContextProtocol
                 {
                     if (_portal.SaveSession())
                     {
-                        return JsonRpcMessage.SuccessData(1, true, "Local session saved");
+                        return new ResponseSaveProject
+                        {
+                            Message = "Local session saved",
+                            Meta = new JsonObject
+                            {
+                                ["timestamp"] = DateTime.Now,
+                                ["success"] = true
+                            }
+                        };
                     }
                     else
                     {
-                        return JsonRpcMessage.Error(1, -32000, "Failed to save local session");
+                        throw new McpException(-32000, "Failed to save local session");
                     }
                 }
                 else
                 {
                     if (_portal.SaveProject())
                     {
-                        return JsonRpcMessage.SuccessData(1, true, "Local project saved");
+                        return new ResponseSaveProject
+                        {
+                            Message = "Local project saved",
+                            Meta = new JsonObject
+                            {
+                                ["timestamp"] = DateTime.Now,
+                                ["success"] = true
+                            }
+                        };
                     }
                     else
                     {
-                        return JsonRpcMessage.Error(1, -32000, "Failed to save project");
+                        throw new McpException(-32000, "Failed to save project");
                     }
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed saving local project/session", ex.Message);
+                throw new McpException(-32000, $"Failed saving local project/session: {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Save current TIA-Portal project/session with a new name")]
-        public static string SaveAsProject(
+        public static ResponseSaveAsProject SaveAsProject(
             [Description("newProjectPath: defines the new path where to save the project")] string newProjectPath)
         {
             try
             {
                 if (_portal.IsLocalSession)
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Cannot save local session as '{newProjectPath}'");
+                    throw new McpException(-32000, $"Cannot save local session as '{newProjectPath}'");
                 }
                 else
                 {
                     if (_portal.SaveAsProject(newProjectPath))
                     {
-                        return JsonRpcMessage.SuccessData(1, true, $"Local project saved as '{newProjectPath}'");
+                        return new ResponseSaveAsProject
+                        {
+                            Message = $"Local project saved as '{newProjectPath}'",
+                            Meta = new JsonObject
+                            {
+                                ["timestamp"] = DateTime.Now,
+                                ["success"] = true
+                            }
+                        };
                     }
                     else
                     {
-                        return JsonRpcMessage.Error(1, -32000, $"Failed saving local project as '{newProjectPath}'");
+                        throw new McpException(-32000, $"Failed saving local project as '{newProjectPath}'");
                     }
                 }
 
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed saving local project/session as '{newProjectPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed saving local project/session as '{newProjectPath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Close the current TIA-Portal project/session")]
-        public static string CloseProject()
+        public static ResponseCloseProject CloseProject()
         {
             try
             {
@@ -231,11 +294,19 @@ namespace TiaMcpServer.ModelContextProtocol
                     success = _portal.CloseSession();
                     if (success)
                     {
-                        return JsonRpcMessage.SuccessData(1, success, "Local session closed");
+                        return new ResponseCloseProject
+                        {
+                            Message = "Local session closed",
+                            Meta = new JsonObject
+                            {
+                                ["timestamp"] = DateTime.Now,
+                                ["success"] = true
+                            }
+                        };
                     }
                     else
                     {
-                        return JsonRpcMessage.Error(1, -32000, "Failed closing local session");
+                        throw new McpException(-32000, "Failed closing local session");
                     }
                 }
                 else
@@ -243,18 +314,26 @@ namespace TiaMcpServer.ModelContextProtocol
                     success = _portal.CloseProject();
                     if (success)
                     {
-                        return JsonRpcMessage.SuccessData(1, success, "Local project closed");
+                        return new ResponseCloseProject
+                        {
+                            Message = "Local project closed",
+                            Meta = new JsonObject
+                            {
+                                ["timestamp"] = DateTime.Now,
+                                ["success"] = true
+                            }
+                        };
                     }
                     else
                     {
-                        return JsonRpcMessage.Error(1, -32000, "Failed closing project");
+                        throw new McpException(-32000, "Failed closing project");
                     }
                 }
 
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed closing local project/session", ex.Message);
+                throw new McpException(-32000, $"Failed closing local project/session: {ex.Message}", ex);
             }
         }
 
@@ -263,7 +342,7 @@ namespace TiaMcpServer.ModelContextProtocol
         #region devices
 
         [McpServerTool, Description("Get the structure of current local project/session")]
-        public static string GetStructure()
+        public static ResponseStructure GetStructure()
         {
             try
             {
@@ -271,21 +350,30 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (!string.IsNullOrEmpty(structure))
                 {
-                    return JsonRpcMessage.SuccessData(1, structure, "Project structure");
+                    return new ResponseStructure
+                    {
+                        Message = "Project structure retrieved",
+                        Structure = structure,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, "Failed retrieving project structure");
+                    throw new McpException(-32000, "Failed retrieving project structure");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving project structure", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving project structure: {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Get info from a device from the current project/session")]
-        public static string GetDeviceInfo(
+        public static ResponseDeviceInfo GetDeviceInfo(
             [Description("devicePath: defines the path in the project structure to the device")] string devicePath)
         {
             try
@@ -294,39 +382,45 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (device != null)
                 {
-                    var attributes = new List<object>();
+                    var attributes = new List<Attribute>();
 
                     foreach (var attr in device.GetAttributeInfos())
                     {
                         object value = device.GetAttribute(attr.Name);
-                        attributes.Add(new
+                        attributes.Add(new Attribute
                         {
-                            attr.Name,
+                            Name = attr.Name,
+                            Value = value,
                             AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
                         });
                     }
 
-                    var info = new
+                    return new ResponseDeviceInfo
                     {
-                        device.Name,
+                        Message = $"Device info retrieved from '{devicePath}'",
+                        Name = device.Name,
                         Attributes = attributes,
-                        Description = device.ToString()
+                        Description = device.ToString(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
                     };
-                    return JsonRpcMessage.SuccessData(1, info, $"Device info from '{devicePath}'");
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Device '{devicePath}' not found");
+                    throw new McpException(-32000, $"Failed retrieving device info from '{devicePath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving device '{devicePath}'", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving device info from '{devicePath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Get info from a device item from the current project/session")]
-        public static string GetDeviceItemInfo(
+        public static ResponseDeviceItemInfo GetDeviceItemInfo(
             [Description("deviceItemPath: defines the path in the project structure to the device item")] string deviceItemPath)
         {
             try
@@ -335,55 +429,70 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (deviceItem != null)
                 {
-                    var attributes = new List<object>();
+                    var attributes = new List<Attribute>();
 
                     foreach (var attr in deviceItem.GetAttributeInfos())
                     {
                         object value = deviceItem.GetAttribute(attr.Name);
-                        attributes.Add(new
+                        attributes.Add(new Attribute
                         {
-                            attr.Name,
+                            Name = attr.Name,
+                            Value = value,
                             AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
                         });
                     }
 
-                    var info = new
+                    return new ResponseDeviceItemInfo
                     {
-                        deviceItem.Name,
+                        Message = $"Device item info retrieved from '{deviceItemPath}'",
+                        Name = deviceItem.Name,
                         Attributes = attributes,
-                        Description = deviceItem.ToString()
+                        Description = deviceItem.ToString(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
                     };
-                    return JsonRpcMessage.SuccessData(1, info, $"Device item info from '{deviceItemPath}'");
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Device item '{deviceItemPath}' not found");
+                    throw new McpException(-32000, $"Failed retrieving device item info from '{deviceItemPath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving device item '{deviceItemPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving device item info from '{deviceItemPath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Get a list of all devices in the project/session")]
-        public static string GetDevices()
+        public static ResponseDevices GetDevices()
         {
             try
             {
                 var list = _portal.GetDevices();
                 if (list != null)
                 {
-                    return JsonRpcMessage.SuccessList<string>(1, list, $"Devices");
+                    return new ResponseDevices
+                    {
+                        Message = "Devices retrieved",
+                        Items = list,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Devices in project/session not found");
+                    throw new McpException(-32000, $"Failed retrieving device");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving devices", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving devices: {ex.Message}", ex);
             }
         }
 
@@ -392,7 +501,7 @@ namespace TiaMcpServer.ModelContextProtocol
         #region plc software
 
         [McpServerTool, Description("Get plc software info")]
-        public static string GetSoftwareInfo(
+        public static ResponseSoftwareInfo GetSoftwareInfo(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath)
         {
             try
@@ -401,40 +510,45 @@ namespace TiaMcpServer.ModelContextProtocol
                 if (software != null)
                 {
 
-                    var attributes = new List<object>();
+                    var attributes = new List<Attribute>();
 
                     foreach (var attr in software.GetAttributeInfos())
                     {
                         object value = software.GetAttribute(attr.Name);
-                        attributes.Add(new
+                        attributes.Add(new Attribute
                         {
-                            attr.Name,
+                            Name = attr.Name,
+                            Value = value,
                             AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
                         });
                     }
 
-                    var info = new
+                    return new ResponseSoftwareInfo
                     {
-                        software.Name,
+                        Message = $"Software info retrieved from '{softwarePath}'",
+                        Name = software.Name,
                         Attributes = attributes,
-                        Description = software.ToString()
+                        Description = software.ToString(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
                     };
-
-                    return JsonRpcMessage.SuccessData(1, info, $"Software info from '{softwarePath}'");
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed retrieving software info from '{softwarePath}'");
+                    throw new McpException(-32000, $"Failed retrieving software info from '{softwarePath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving software info from '{softwarePath}'", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving software info from '{softwarePath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Compile the plc software")]
-        public static string CompileSoftware(
+        public static ResponseCompileSoftware CompileSoftware(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("password: the password to access adminsitration, default: no password")] string password = "")
         {
@@ -443,16 +557,24 @@ namespace TiaMcpServer.ModelContextProtocol
                 var result = _portal.CompileSoftware(softwarePath, password);
                 if (result != null && !result.State.ToString().Equals("Error"))
                 {
-                    return JsonRpcMessage.SuccessData(1, result, $"Software '{softwarePath}' compiled with {result}");
+                    return new ResponseCompileSoftware
+                    {
+                        Message = $"Software '{softwarePath}' compiled with {result}",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed compiling software '{softwarePath}'", result);
+                    throw new McpException(-32000, $"Failed compiling software '{softwarePath}': {result}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed compiling software '{softwarePath}'", ex.Message);
+                throw new McpException(-32000, $"Failed compiling software '{softwarePath}': {ex.Message}", ex);
             }
         }
 
@@ -461,7 +583,7 @@ namespace TiaMcpServer.ModelContextProtocol
         #region blocks
 
         [McpServerTool, Description("Get a block info, which is located in the plc software")]
-        public static string GetBlockInfo(
+        public static ResponseBlockInfo GetBlockInfo(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath)
         {
@@ -470,47 +592,52 @@ namespace TiaMcpServer.ModelContextProtocol
                 var block = _portal.GetBlock(softwarePath, blockPath);
                 if (block != null)
                 {
-                    var attributes = new List<object>();
+                    var attributes = new List<Attribute>();
 
                     foreach (var attr in block.GetAttributeInfos())
                     {
                         object value = block.GetAttribute(attr.Name);
-                        attributes.Add(new
+                        attributes.Add(new Attribute
                         {
-                            attr.Name,
+                            Name = attr.Name,
+                            Value = value,
                             AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
                         });
                     }
 
-                    var info = new
+                    return new ResponseBlockInfo
                     {
-                        block.Name,
-                        block.Namespace,
-                        block.ProgrammingLanguage,
-                        block.MemoryLayout,
-                        block.IsConsistent,
-                        block.HeaderName,
-                        block.ModifiedDate,
-                        block.IsKnowHowProtected,
+                        Message = $"Block info retrieved from '{blockPath}' in '{softwarePath}'",
+                        Name = block.Name,
+                        Namespace = block.Namespace,
+                        ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage),block.ProgrammingLanguage),
+                        MemoryLayout = Enum.GetName(typeof(MemoryLayout), block.MemoryLayout),
+                        IsConsistent = block.IsConsistent,
+                        HeaderName = block.HeaderName,
+                        ModifiedDate = block.ModifiedDate,
+                        IsKnowHowProtected = block.IsKnowHowProtected,
                         Attributes = attributes,
-                        Description = block.ToString()
+                        Description = block.ToString(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
                     };
-
-                    return JsonRpcMessage.SuccessData(1, info, $"Block info from '{blockPath}' in '{softwarePath}'");
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Block '{blockPath}' in '{softwarePath}' not found");
+                    throw new McpException(-32000, $"Failed retrieving block info from '{blockPath}' in '{softwarePath}'");
                 }
             }
             catch (Exception ex)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving block '{blockPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving block info from '{blockPath}' in '{softwarePath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Get a list of blocks, which are located in plc software")]
-        public static string GetBlocks(
+        public static ResponseBlocks GetBlocks(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "")
         {
@@ -519,21 +646,30 @@ namespace TiaMcpServer.ModelContextProtocol
                 var list = _portal.GetBlocks(softwarePath, regexName);
                 if (list != null)
                 {
-                    return JsonRpcMessage.SuccessList<string>(1, list, $"Blocks");
+                    return new ResponseBlocks
+                    {
+                        Message = $"Blocks with regex '{regexName}' retrieved from '{softwarePath}'",
+                        Items = list,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Blocks with regex '{regexName}' in '{softwarePath}' not found");
+                    throw new McpException(-32000, $"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}: {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Export a block from plc software to file")]
-        public static string ExportBlock(
+        public static ResponseExportBlock ExportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath,
             [Description("exportPath: defines the path where to export the block")] string exportPath,
@@ -543,21 +679,29 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportBlock(softwarePath, blockPath, exportPath, preservePath))
                 {
-                    return JsonRpcMessage.SuccessData(1, true, $"Block exported from '{blockPath}' to '{exportPath}'");
+                    return new ResponseExportBlock
+                    {
+                        Message = $"Block exported from '{blockPath}' to '{exportPath}'",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting block from '{blockPath}' to '{exportPath}'");
+                    throw new McpException(-32000, $"Failed exporting block from '{blockPath}' to '{exportPath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting block from '{blockPath}' to '{exportPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed exporting block from '{blockPath}' to '{exportPath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Import a block file to plc software")]
-        public static string ImportBlock(
+        public static ResponseImportBlock ImportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("groupPath: defines the path in the project structure to the group, where to import the block")] string groupPath,
             [Description("importPath: defines the path of the xml file from where to import the block")] string importPath)
@@ -566,21 +710,29 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ImportBlock(softwarePath, groupPath, importPath))
                 {
-                    return JsonRpcMessage.SuccessData(1, true, $"Block imported from '{importPath}' to '{groupPath}'");
+                    return new ResponseImportBlock
+                    {
+                        Message = $"Block imported from '{importPath}' to '{groupPath}'",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed importing block from '{importPath}' to '{groupPath}'");
+                    throw new McpException(-32000, $"Failed importing block from '{importPath}' to '{groupPath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed importing block from '{importPath}' to '{groupPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed importing block from '{importPath}' to '{groupPath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Export all blocks from the plc software to path")]
-        public static string ExportBlocks(
+        public static ResponseExportBlocks ExportBlocks(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the blocks")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
@@ -590,16 +742,24 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath))
                 {
-                    return JsonRpcMessage.SuccessData(1, true, $"Blocks '{regexName}' from '{softwarePath}' exported");
+                    return new ResponseExportBlocks
+                    {
+                        Message = $"Blocks with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}'");
+                    throw new McpException(-32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}'", ex.Message);
+                throw new McpException(-32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex);
             }
         }
 
@@ -608,7 +768,7 @@ namespace TiaMcpServer.ModelContextProtocol
         #region types
 
         [McpServerTool, Description("Get a type info from the plc software")]
-        public static string GetTypeInfo(
+        public static ResponseTypeInfo GetTypeInfo(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("typePath: defines the path in the project structure to the type")] string typePath)
         {
@@ -617,43 +777,49 @@ namespace TiaMcpServer.ModelContextProtocol
                 var type = _portal.GetType(softwarePath, typePath);
                 if (type != null)
                 {
-                    var attributes = new List<object>();
+                    var attributes = new List<Attribute>();
 
                     foreach (var attr in type.GetAttributeInfos())
                     {
                         object value = type.GetAttribute(attr.Name);
-                        attributes.Add(new
+                        attributes.Add(new Attribute
                         {
-                            attr.Name,
+                            Name = attr.Name,
+                            Value = value,
                             AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
                         });
                     }
 
-                    var info = new
+                    return new ResponseTypeInfo
                     {
-                        type.Name,
-                        type.Namespace,
-                        type.IsConsistent,
-                        type.ModifiedDate,
-                        type.IsKnowHowProtected,
+                        Message = $"Type info retrieved from '{typePath}' in '{softwarePath}'",
+                        Name = type.Name,
+                        Namespace = type.Namespace,
+                        IsConsistent = type.IsConsistent,
+                        ModifiedDate = type.ModifiedDate,
+                        IsKnowHowProtected = type.IsKnowHowProtected,
                         Attributes = attributes,
-                        Description = type.ToString()
+                        Description = type.ToString(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
                     };
-                    return JsonRpcMessage.SuccessData(1, info, $"Type info from '{typePath}' in '{softwarePath}'");
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Type '{typePath}' in '{softwarePath}' not found");
+                    throw new McpException(-32000, $"Failed retrieving type info from '{typePath}' in '{softwarePath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving type '{typePath}' in '{softwarePath}'", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving type info from '{typePath}' in '{softwarePath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Get a list of types from the plc software")]
-        public static string GetTypes(
+        public static ResponseTypes GetTypes(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "")
         {
@@ -663,21 +829,30 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (list != null)
                 {
-                    return JsonRpcMessage.SuccessList<string>(1, list, $"Types");
+                    return new ResponseTypes
+                    {
+                        Message = $"Types with regex '{regexName}' retrieved from '{softwarePath}'",
+                        Items = list,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Types with regex '{regexName}' in '{softwarePath}' not found");
+                    throw new McpException(-32000, $"Failed retrieving user defined types with regex '{regexName}' in '{softwarePath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed retrieving user defined types", ex.Message);
+                throw new McpException(-32000, $"Failed retrieving user defined types with regex '{regexName}' in '{softwarePath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Export a type from the plc software")]
-        public static string ExportType(
+        public static ResponseExportType ExportType(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where export the type")] string exportPath,
             [Description("typePath: defines the path in the project structure to the type")] string typePath,
@@ -687,21 +862,29 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportType(softwarePath, typePath, exportPath, preservePath))
                 {
-                    return JsonRpcMessage.SuccessData(1, true, $"Type exported from '{typePath}' to '{exportPath}'");
+                    return new ResponseExportType
+                    {
+                        Message = $"Type exported from '{typePath}' to '{exportPath}'",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting type from '{typePath}' to '{exportPath}'");
+                    throw new McpException(-32000, $"Failed exporting type from '{typePath}' to '{exportPath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting type from '{typePath}' to '{exportPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed exporting type from '{typePath}' to '{exportPath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Import a type from file into the plc software")]
-        public static string ImportType(
+        public static ResponseImportType ImportType(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("groupPath: defines the path in the project structure to the group, where to import the type")] string groupPath,
             [Description("importPath: defines the path of the xml file from where to import the type")] string importPath)
@@ -710,21 +893,29 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ImportType(softwarePath, groupPath, importPath))
                 {
-                    return JsonRpcMessage.SuccessData(1, true, $"Type imported from '{importPath}' to '{groupPath}'");
+                    return new ResponseImportType
+                    {
+                        Message = $"Type imported from '{importPath}' to '{groupPath}'",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed importing type from '{importPath}' to '{groupPath}'");
+                    throw new McpException(-32000, $"Failed importing type from '{importPath}' to '{groupPath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed importing type from '{importPath}' to '{groupPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed importing type from '{importPath}' to '{groupPath}': {ex.Message}", ex);
             }
         }
 
         [McpServerTool, Description("Export types from the plc software to path")]
-        public static string ExportTypes(
+        public static ResponseExportTypes ExportTypes(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the types")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
@@ -734,16 +925,24 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportTypes(softwarePath, exportPath, regexName, preservePath))
                 {
-                    return JsonRpcMessage.SuccessData(1, true, $"Types '{regexName}' from '{softwarePath}' exported");
+                    return new ResponseExportTypes
+                    {
+                        Message = $"Types with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting types '{regexName}' from '{softwarePath}'");
+                    throw new McpException(-32000, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting types '{regexName}' from '{softwarePath}'", ex.Message);
+                throw new McpException(-32000, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex);
             }
         }
 
@@ -752,7 +951,7 @@ namespace TiaMcpServer.ModelContextProtocol
         #region documents
 
         [McpServerTool, Description("Export as documents (.s7dcl/.s7res) from a block in the plc software to path")]
-        public static string ExportAsDocuments(
+        public static ResponseExportAsDocuments ExportAsDocuments(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath,
             [Description("exportPath: defines the path where to export the documents")] string exportPath,
@@ -762,16 +961,24 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (_portal.ExportAsDocuments(softwarePath, blockPath, exportPath, preservePath))
                 {
-                    return JsonRpcMessage.SuccessData(1, true, $"Documents exported from '{blockPath}' to '{exportPath}'");
+                    return new ResponseExportAsDocuments
+                    {
+                        Message = $"Documents exported from '{blockPath}' to '{exportPath}'",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
                 }
                 else
                 {
-                    return JsonRpcMessage.Error(1, -32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}'");
+                    throw new McpException(-32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}'");
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                return JsonRpcMessage.Exception(1, -32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}'", ex.Message);
+                throw new McpException(-32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}': {ex.Message}", ex);
             }
         }
 
