@@ -353,7 +353,7 @@ namespace TiaMcpServer.ModelContextProtocol
                     return new ResponseStructure
                     {
                         Message = "Project structure retrieved",
-                        Structure = structure,
+                        Structure = "```\n" + structure + "\n```",
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
