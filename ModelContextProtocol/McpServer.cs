@@ -1,5 +1,6 @@
 ﻿using ModelContextProtocol.Server;
 using Siemens.Engineering;
+using Siemens.Engineering.HW;
 using Siemens.Engineering.SW.Blocks;
 using System;
 using System.Collections.Generic;
@@ -382,18 +383,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (device != null)
                 {
-                    var attributes = new List<Attribute>();
-
-                    foreach (var attr in device.GetAttributeInfos())
-                    {
-                        object value = device.GetAttribute(attr.Name);
-                        attributes.Add(new Attribute
-                        {
-                            Name = attr.Name,
-                            Value = value,
-                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
-                        });
-                    }
+                    var attributes = Helper.GetAttributeList(device);
 
                     return new ResponseDeviceInfo
                     {
@@ -429,18 +419,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (deviceItem != null)
                 {
-                    var attributes = new List<Attribute>();
-
-                    foreach (var attr in deviceItem.GetAttributeInfos())
-                    {
-                        object value = deviceItem.GetAttribute(attr.Name);
-                        attributes.Add(new Attribute
-                        {
-                            Name = attr.Name,
-                            Value = value,
-                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
-                        });
-                    }
+                    var attributes = Helper.GetAttributeList(deviceItem);
 
                     return new ResponseDeviceItemInfo
                     {
@@ -510,18 +489,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 if (software != null)
                 {
 
-                    var attributes = new List<Attribute>();
-
-                    foreach (var attr in software.GetAttributeInfos())
-                    {
-                        object value = software.GetAttribute(attr.Name);
-                        attributes.Add(new Attribute
-                        {
-                            Name = attr.Name,
-                            Value = value,
-                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
-                        });
-                    }
+                    var attributes = Helper.GetAttributeList(software);
 
                     return new ResponseSoftwareInfo
                     {
@@ -592,23 +560,13 @@ namespace TiaMcpServer.ModelContextProtocol
                 var block = _portal.GetBlock(softwarePath, blockPath);
                 if (block != null)
                 {
-                    var attributes = new List<Attribute>();
-
-                    foreach (var attr in block.GetAttributeInfos())
-                    {
-                        object value = block.GetAttribute(attr.Name);
-                        attributes.Add(new Attribute
-                        {
-                            Name = attr.Name,
-                            Value = value,
-                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
-                        });
-                    }
+                    var attributes = Helper.GetAttributeList(block);
 
                     return new ResponseBlockInfo
                     {
                         Message = $"Block info retrieved from '{blockPath}' in '{softwarePath}'",
                         Name = block.Name,
+                        TypeName = block.GetType().Name,
                         Namespace = block.Namespace,
                         ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage),block.ProgrammingLanguage),
                         MemoryLayout = Enum.GetName(typeof(MemoryLayout), block.MemoryLayout),
@@ -644,12 +602,37 @@ namespace TiaMcpServer.ModelContextProtocol
             try
             {
                 var list = _portal.GetBlocks(softwarePath, regexName);
+
+                var responseList = new List<ResponseBlockInfo>();
+                foreach (var block in list)
+                {
+                    if (block != null)
+                    {
+                        var attributes = Helper.GetAttributeList(block);
+
+                        responseList.Add(new ResponseBlockInfo
+                        {
+                            Name = block.Name,
+                            TypeName = block.GetType().Name,
+                            Namespace = block.Namespace,
+                            ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage), block.ProgrammingLanguage),
+                            MemoryLayout = Enum.GetName(typeof(MemoryLayout), block.MemoryLayout),
+                            IsConsistent = block.IsConsistent,
+                            HeaderName = block.HeaderName,
+                            ModifiedDate = block.ModifiedDate,
+                            IsKnowHowProtected = block.IsKnowHowProtected,
+                            Attributes = attributes,
+                            Description = block.ToString()
+                        });
+                    }
+                }
+
                 if (list != null)
                 {
                     return new ResponseBlocks
                     {
                         Message = $"Blocks with regex '{regexName}' retrieved from '{softwarePath}'",
-                        Items = list,
+                        Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
@@ -677,7 +660,8 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.ExportBlock(softwarePath, blockPath, exportPath, preservePath))
+                var block = _portal.ExportBlock(softwarePath, blockPath, exportPath, preservePath);
+                if (block != null)
                 {
                     return new ResponseExportBlock
                     {
@@ -740,11 +724,37 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath))
+                var list = _portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath);
+                if (list != null)
                 {
+                    var responseList = new List<ResponseBlockInfo>();
+                    foreach (var block in list)
+                    {
+                        if (block != null)
+                        {
+                            var attributes = Helper.GetAttributeList(block);
+
+                            responseList.Add(new ResponseBlockInfo
+                            {
+                                Name = block.Name,
+                                TypeName = block.GetType().Name,
+                                Namespace = block.Namespace,
+                                ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage), block.ProgrammingLanguage),
+                                MemoryLayout = Enum.GetName(typeof(MemoryLayout), block.MemoryLayout),
+                                IsConsistent = block.IsConsistent,
+                                HeaderName = block.HeaderName,
+                                ModifiedDate = block.ModifiedDate,
+                                IsKnowHowProtected = block.IsKnowHowProtected,
+                                Attributes = attributes,
+                                Description = block.ToString()
+                            });
+                        }
+                    }
+
                     return new ResponseExportBlocks
                     {
                         Message = $"Blocks with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
@@ -777,23 +787,13 @@ namespace TiaMcpServer.ModelContextProtocol
                 var type = _portal.GetType(softwarePath, typePath);
                 if (type != null)
                 {
-                    var attributes = new List<Attribute>();
-
-                    foreach (var attr in type.GetAttributeInfos())
-                    {
-                        object value = type.GetAttribute(attr.Name);
-                        attributes.Add(new Attribute
-                        {
-                            Name = attr.Name,
-                            Value = value,
-                            AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
-                        });
-                    }
+                    var attributes = Helper.GetAttributeList(type);
 
                     return new ResponseTypeInfo
                     {
                         Message = $"Type info retrieved from '{typePath}' in '{softwarePath}'",
                         Name = type.Name,
+                        TypeName = type.GetType().Name,
                         Namespace = type.Namespace,
                         IsConsistent = type.IsConsistent,
                         ModifiedDate = type.ModifiedDate,
@@ -827,12 +827,33 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 var list = _portal.GetTypes(softwarePath, regexName);
 
+                var responseList = new List<ResponseTypeInfo>();
+                foreach (var type in list)
+                {
+                    if (type != null)
+                    {
+                        var attributes = Helper.GetAttributeList(type);
+
+                        responseList.Add(new ResponseTypeInfo
+                        {
+                            Name = type.Name,
+                            TypeName = type.GetType().Name,
+                            Namespace = type.Namespace,
+                            IsConsistent = type.IsConsistent,
+                            ModifiedDate = type.ModifiedDate,
+                            IsKnowHowProtected = type.IsKnowHowProtected,
+                            Attributes = attributes,
+                            Description = type.ToString()
+                        });
+                    }
+                }
+
                 if (list != null)
                 {
                     return new ResponseTypes
                     {
                         Message = $"Types with regex '{regexName}' retrieved from '{softwarePath}'",
-                        Items = list,
+                        Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
@@ -860,7 +881,8 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.ExportType(softwarePath, typePath, exportPath, preservePath))
+                var type = _portal.ExportType(softwarePath, typePath, exportPath, preservePath);
+                if (type != null)
                 {
                     return new ResponseExportType
                     {
@@ -923,11 +945,34 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.ExportTypes(softwarePath, exportPath, regexName, preservePath))
+                var list = _portal.ExportTypes(softwarePath, exportPath, regexName, preservePath);
+                if (list != null)
                 {
+                    var responseList = new List<ResponseTypeInfo>();
+                    foreach (var type in list)
+                    {
+                        if (type != null)
+                        {
+                            var attributes = Helper.GetAttributeList(type);
+
+                            responseList.Add(new ResponseTypeInfo
+                            {
+                                Name = type.Name,
+                                TypeName = type.GetType().Name,
+                                Namespace = type.Namespace,
+                                IsConsistent = type.IsConsistent,
+                                ModifiedDate = type.ModifiedDate,
+                                IsKnowHowProtected = type.IsKnowHowProtected,
+                                Attributes = attributes,
+                                Description = type.ToString()
+                            });
+                        }
+                    }
+
                     return new ResponseExportTypes
                     {
                         Message = $"Types with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
@@ -979,6 +1024,64 @@ namespace TiaMcpServer.ModelContextProtocol
             catch (Exception ex) when (ex is not McpException)
             {
                 throw new McpException(-32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}': {ex.Message}", ex);
+            }
+        }
+
+        [McpServerTool, Description("Export as documents (.s7dcl/.s7res) from a block in the plc software to path")]
+        public static ResponseExportBlocksAsDocuments ExportBlocksAsDocuments(
+            [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
+            [Description("exportPath: defines the path where to export the documents")] string exportPath,
+            [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
+            [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
+        {
+            try
+            {
+                var list = _portal.ExportBlocksAsDocuments(softwarePath, exportPath, regexName, preservePath);
+                if (list != null)
+                {
+                    var respnseList = new List<ResponseBlockInfo>();
+                    foreach (var block in list)
+                    {
+                        if (block != null)
+                        {
+                            var attributes = Helper.GetAttributeList(block);
+
+                            respnseList.Add(new ResponseBlockInfo
+                            {
+                                Name = block.Name,
+                                TypeName = block.GetType().Name,
+                                Namespace = block.Namespace,
+                                ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage), block.ProgrammingLanguage),
+                                MemoryLayout = Enum.GetName(typeof(MemoryLayout), block.MemoryLayout),
+                                IsConsistent = block.IsConsistent,
+                                HeaderName = block.HeaderName,
+                                ModifiedDate = block.ModifiedDate,
+                                IsKnowHowProtected = block.IsKnowHowProtected,
+                                Attributes = attributes,
+                                Description = block.ToString()
+                            });
+                        }
+                    }
+
+                    return new ResponseExportBlocksAsDocuments
+                    {
+                        Message = $"Documents exported to '{exportPath}'",
+                        Items = respnseList,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
+                }
+                else
+                {
+                    throw new McpException(-32000, $"Failed exporting documents to '{exportPath}'");
+                }
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException(-32000, $"Failed exporting documents to '{exportPath}': {ex.Message}", ex);
             }
         }
 

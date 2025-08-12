@@ -83,6 +83,8 @@ namespace TiaMcpServer.ModelContextProtocol
 
     public class ResponseBlockInfo : ResponseMessage
     {
+        //public string? Path { get; set; }
+        public string? TypeName { get; set; }
         public string? Name { get; set; }
         public string? Namespace { get; set; }
         public string? ProgrammingLanguage { get; set; }
@@ -97,7 +99,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
     public class ResponseBlocks : ResponseMessage
     {
-        public IEnumerable<string>? Items { get; set; }
+        public IEnumerable<ResponseBlockInfo>? Items { get; set; }
     }
 
     public class ResponseExportBlock : ResponseMessage
@@ -110,11 +112,14 @@ namespace TiaMcpServer.ModelContextProtocol
 
     public class ResponseExportBlocks : ResponseMessage
     {
+        public IEnumerable<ResponseBlockInfo>? Items { get; set; }
     }
 
     public class ResponseTypeInfo : ResponseMessage
     {
+        //public string? Path { get; set; }
         public string? Name { get; set; }
+        public string? TypeName { get; set; }
         public string? Namespace { get; set; }
         public bool? IsConsistent { get; set; }
         public DateTime? ModifiedDate { get; set; }
@@ -125,7 +130,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
     public class ResponseTypes : ResponseMessage
     {
-        public IEnumerable<string>? Items { get; set; }
+        public IEnumerable<ResponseTypeInfo>? Items { get; set; }
     }
 
     public class ResponseExportType : ResponseMessage
@@ -138,9 +143,15 @@ namespace TiaMcpServer.ModelContextProtocol
 
     public class ResponseExportTypes : ResponseMessage
     {
+        public IEnumerable<ResponseTypeInfo>? Items { get; set; }
     }
 
     public class ResponseExportAsDocuments : ResponseMessage
     {
+    }
+
+    public class ResponseExportBlocksAsDocuments : ResponseMessage
+    {
+        public IEnumerable<ResponseBlockInfo>? Items { get; set; }
     }
 }

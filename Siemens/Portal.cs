@@ -1,5 +1,6 @@
 ﻿using Siemens.Engineering;
 using Siemens.Engineering.Compiler;
+using Siemens.Engineering.CrossReference;
 using Siemens.Engineering.Hmi;
 using Siemens.Engineering.HmiUnified;
 using Siemens.Engineering.HmiUnified.HmiLogging.HmiLoggingCommon;
@@ -20,6 +21,7 @@ using System.Security;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using TiaMcpServer.ModelContextProtocol;
 
 namespace TiaMcpServer.Siemens
 {
@@ -801,14 +803,14 @@ namespace TiaMcpServer.Siemens
             return null;
         }
 
-        public List<string> GetBlocks(string softwarePath, string regexName = "")
+        public List<PlcBlock> GetBlocks(string softwarePath, string regexName = "")
         {
             if (_project == null)
             {
                 return [];
             }
 
-            var list = new List<string>();
+            var list = new List<PlcBlock>();
             try
             {
                 var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -830,14 +832,14 @@ namespace TiaMcpServer.Siemens
             return list;
         }
 
-        public List<string> GetTypes(string softwarePath, string regexName = "")
+        public List<PlcType> GetTypes(string softwarePath, string regexName = "")
         {
             if (_project == null)
             {
                 return [];
             }
 
-            var list = new List<string>();
+            var list = new List<PlcType>();
             try
             {
                 var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -859,7 +861,7 @@ namespace TiaMcpServer.Siemens
             return list;
         }
 
-        private bool GetBlocksRecursive(PlcBlockGroup group, List<string> list, string regexName = "")
+        private bool GetBlocksRecursive(PlcBlockGroup group, List<PlcBlock> list, string regexName = "")
         {
             var anySuccess = false;
 
@@ -882,7 +884,7 @@ namespace TiaMcpServer.Siemens
 
                     var groupPath = GetPlcBlockGroupPath(group);
 
-                    list.Add($"{groupPath}/{block.Name}, '{block.ModifiedDate}'");
+                    list.Add(block);
 
                     anySuccess = true;
                 }
@@ -896,7 +898,7 @@ namespace TiaMcpServer.Siemens
             return anySuccess;
         }
 
-        private bool GetTypesRecursive(PlcTypeGroup group, List<string> list, string regexName = "")
+        private bool GetTypesRecursive(PlcTypeGroup group, List<PlcType> list, string regexName = "")
         {
             var anySuccess = false;
 
@@ -919,7 +921,8 @@ namespace TiaMcpServer.Siemens
 
                     var groupPath = GetPlcTypeGroupPath(group);
 
-                    list.Add($"{groupPath}/{type.Name}, '{type.ModifiedDate}'");
+                    //list.Add($"{groupPath}/{type.Name}, '{type.ModifiedDate}'");
+                    list.Add(type);
 
                     anySuccess = true;
                 }
@@ -934,12 +937,14 @@ namespace TiaMcpServer.Siemens
             return anySuccess;
         }
 
-        public bool ExportBlock(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
+        public PlcBlock? ExportBlock(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
         {
             if (_project == null)
             {
-                return false;
+                return null;
             }
+
+            PlcBlock? block = null;
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software is PlcSoftware plcSoftware)
@@ -954,48 +959,42 @@ namespace TiaMcpServer.Siemens
                     var group = GetPlcBlockGroupByPath(softwarePath, path);
                     if (group == null)
                     {
-                        return false;
+                        return null;
                     }
 
-                    var block = group.Blocks.FirstOrDefault(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                    block = group.Blocks.FirstOrDefault(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
 
                     if (block != null)
                     {
-                        if (block is PlcBlock b)
+                        if (preservePath)
                         {
-                            if (preservePath)
-                            {
-                                exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{b.Name}.xml");
-                            }
-                            else
-                            {
-                                exportPath = Path.Combine(exportPath, $"{b.Name}.xml");
-                            }
+                            exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{block.Name}.xml");
+                        }
+                        else
+                        {
+                            exportPath = Path.Combine(exportPath, $"{block.Name}.xml");
+                        }
 
-                            try
+                        try
+                        {
+
+                            if (File.Exists(exportPath))
                             {
-
-                                if (File.Exists(exportPath))
-                                {
-                                    File.Delete(exportPath);
-                                }
-
-                                b.Export(new FileInfo(exportPath), ExportOptions.None);
-
-                                return true;
-                            }
-                            catch (Exception)
-                            {
-                                // Console.WriteLine($"Error exporting block '{blockName}': {ex.Message}");
+                                File.Delete(exportPath);
                             }
 
-                            return false;
+                            block.Export(new FileInfo(exportPath), ExportOptions.None);
+
+                        }
+                        catch (Exception)
+                        {
+                            block = null; // Export failed, return null
                         }
                     }
                 }
             }
 
-            return false;
+            return block;
         }
 
         public bool ImportBlock(string softwarePath, string groupPath, string importPath)
@@ -1043,14 +1042,14 @@ namespace TiaMcpServer.Siemens
             return false;
         }
 
-        public bool ExportType(string softwarePath, string typePath, string exportPath, bool preservePath = false)
+        public PlcType? ExportType(string softwarePath, string typePath, string exportPath, bool preservePath = false)
         {
-            var success = false;
-
             if (_project == null)
             {
-                return success;
+                return null;
             }
+
+            PlcType? type = null;
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software is PlcSoftware plcSoftware)
@@ -1065,10 +1064,10 @@ namespace TiaMcpServer.Siemens
                     var group = GetPlcTypeGroupByPath(softwarePath, path);
                     if (group == null)
                     {
-                        return false;
+                        return null;
                     }
 
-                    var type = group.Types.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
+                    type = group.Types.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
                     if (type != null)
                     {
                         if (preservePath)
@@ -1089,18 +1088,17 @@ namespace TiaMcpServer.Siemens
                             }
 
                             type.Export(new FileInfo(exportPath), ExportOptions.None);
-
-                            success = true;
                         }
                         catch (Exception)
                         {
                             // Console.WriteLine($"Error exporting user defined type '{typeName}': {ex.Message}");
+                            type = null;
                         }
                     }
                 }
             }
 
-            return success;
+            return type;
         }
 
         public bool ImportType(string softwarePath, string groupPath, string importPath)
@@ -1148,13 +1146,14 @@ namespace TiaMcpServer.Siemens
             return success;
         }
 
-        public bool ExportBlocks(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
+        public IEnumerable<PlcBlock>? ExportBlocks(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
         {
             if (_project == null)
             {
-                return false;
+                return null;
             }
 
+            var list = new List<PlcBlock>();
             var success = false;
             try
             {
@@ -1165,7 +1164,7 @@ namespace TiaMcpServer.Siemens
 
                     if (blockGroup != null)
                     {
-                        success = ExportBlocksRecursive(exportPath, exportPath, blockGroup, regexName, preservePath) || success;
+                        success = ExportBlocksRecursive(exportPath, exportPath, blockGroup, list, regexName, preservePath) || success;
                     }
                 }
             }
@@ -1174,18 +1173,19 @@ namespace TiaMcpServer.Siemens
                 // Console.WriteLine($"Error exporting blocks: {ex.Message}");
             }
 
-            return success;
+            return list;
         }
 
-        public bool ExportTypes(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
+        public IEnumerable<PlcType>? ExportTypes(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
         {
             var success = false;
 
             if (_project == null)
             {
-                return success;
+                return null;
             }
 
+            var list = new List<PlcType>();
             try
             {
                 var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -1195,7 +1195,7 @@ namespace TiaMcpServer.Siemens
 
                     if (udtGroup != null)
                     {
-                        success = ExportTypesRecursive(exportPath, exportPath, udtGroup, regexName, preservePath) || success;
+                        success = ExportTypesRecursive(exportPath, exportPath, udtGroup, list, regexName, preservePath) || success;
                     }
                 }
             }
@@ -1204,10 +1204,10 @@ namespace TiaMcpServer.Siemens
                 // Console.WriteLine($"Error exporting user defined types: {ex.Message}");
             }
 
-            return success;
+            return list;
         }
 
-        private bool ExportBlocksRecursive(string exportPath, string subPath, PlcBlockGroup group, string regexName = "", bool preservePath = false)
+        private bool ExportBlocksRecursive(string exportPath, string subPath, PlcBlockGroup group, List<PlcBlock> list, string regexName = "", bool preservePath = false)
         {
             var anySuccess = false;
 
@@ -1233,7 +1233,7 @@ namespace TiaMcpServer.Siemens
 
                     if (preservePath)
                     {
-                        path = Path.Combine(subPath, group.Name.Replace('/', '\\'), $"{block.Name}.xml");
+                        path = Path.Combine(subPath, $"{block.Name}.xml"); // group.Name.Replace('/', '\\'),
                     }
                     else
                     {
@@ -1250,6 +1250,8 @@ namespace TiaMcpServer.Siemens
 
                         block.Export(new FileInfo(path), ExportOptions.None);
 
+                        list.Add(block);
+
                         anySuccess = true;
                     }
                     catch (Exception)
@@ -1264,13 +1266,13 @@ namespace TiaMcpServer.Siemens
             {
                 var newSubPath = Path.Combine(subPath, subgroup.Name);
 
-                anySuccess = ExportBlocksRecursive(exportPath, newSubPath, subgroup, regexName, preservePath) || anySuccess;
+                anySuccess = ExportBlocksRecursive(exportPath, newSubPath, subgroup, list, regexName, preservePath) || anySuccess;
             }
 
             return anySuccess;
         }
 
-        private bool ExportTypesRecursive(string exportPath, string subPath, PlcTypeGroup group, string regexName = "", bool preservePath = false)
+        private bool ExportTypesRecursive(string exportPath, string subPath, PlcTypeGroup group, List<PlcType> list, string regexName = "", bool preservePath = false)
         {
             var anySuccess = false;
 
@@ -1296,7 +1298,7 @@ namespace TiaMcpServer.Siemens
 
                     if (preservePath)
                     {
-                        path = Path.Combine(subPath, group.Name.Replace('/', '\\'), $"{type.Name}.xml");
+                        path = Path.Combine(subPath, $"{type.Name}.xml"); // group.Name.Replace('/', '\\'), 
                     }
                     else
                     {
@@ -1313,6 +1315,8 @@ namespace TiaMcpServer.Siemens
 
                         type.Export(new FileInfo(path), ExportOptions.None);
 
+                        list.Add(type);
+
                         anySuccess = true;
                     }
                     catch (Exception)
@@ -1327,7 +1331,7 @@ namespace TiaMcpServer.Siemens
             {
                 var newSubPath = Path.Combine(subPath, subgroup.Name);
 
-                anySuccess = ExportTypesRecursive(exportPath, newSubPath, subgroup, regexName, preservePath) || anySuccess;
+                anySuccess = ExportTypesRecursive(exportPath, newSubPath, subgroup, list, regexName, preservePath) || anySuccess;
             }
 
             return anySuccess;
@@ -1417,6 +1421,56 @@ namespace TiaMcpServer.Siemens
                 // Console.WriteLine($"Error exporting blocks as documents: {ex.Message}");
             }
             return success;
+        }
+
+        // TIA portal crashes when exporting blocks as documents, :-(
+        public IEnumerable<PlcBlock>? ExportBlocksAsDocuments(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
+        {
+            if (_project == null)
+            {
+                return null;
+            }
+
+            var list = GetBlocks(softwarePath, regexName);
+
+            List<PlcBlock>? exportedList = null;
+
+            if (list != null)
+            {
+                exportedList = [];
+
+                foreach (var block in list)
+                {
+                    try
+                    {
+                        var blockFiles7dclPath = Path.Combine(exportPath, $"{block.Name}.s7dcl");
+                        if (File.Exists(blockFiles7dclPath))
+                        {
+                            File.Delete(blockFiles7dclPath);
+                        }
+                        var blockFiles7resPath = Path.Combine(exportPath, $"{block.Name}.s7res");
+                        if (File.Exists(blockFiles7resPath))
+                        {
+                            File.Delete(blockFiles7resPath);
+                        }
+
+                        var result = block.ExportAsDocuments(new DirectoryInfo(exportPath), block.Name);
+
+                        if (result != null && result.State == DocumentResultState.Success)
+                        {
+                            exportedList.Add(block);
+                        }
+                    }
+                    catch (EngineeringNotSupportedException)
+                    {
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+
+            return exportedList;
         }
 
         #endregion
