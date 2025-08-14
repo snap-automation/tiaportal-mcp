@@ -1,9 +1,8 @@
-﻿using Siemens.Engineering;
+﻿using Microsoft.Extensions.Logging;
+using Siemens.Engineering;
 using Siemens.Engineering.Compiler;
-using Siemens.Engineering.CrossReference;
 using Siemens.Engineering.Hmi;
 using Siemens.Engineering.HmiUnified;
-using Siemens.Engineering.HmiUnified.HmiLogging.HmiLoggingCommon;
 using Siemens.Engineering.HW;
 using Siemens.Engineering.HW.Features;
 using Siemens.Engineering.Multiuser;
@@ -16,12 +15,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Net;
-using System.Reflection;
 using System.Security;
 using System.Text;
-using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
-using TiaMcpServer.ModelContextProtocol;
 
 namespace TiaMcpServer.Siemens
 {
@@ -33,6 +29,16 @@ namespace TiaMcpServer.Siemens
         private TiaPortal? _portal;
         private ProjectBase? _project;
         private LocalSession? _session;
+        private readonly ILogger<Portal>? _logger;
+
+        #region ctor
+
+        public Portal(ILogger<Portal>? logger = null)
+        {
+            _logger = logger;
+        }
+
+        #endregion
 
         #region helper for mcp server
 
@@ -122,6 +128,8 @@ namespace TiaMcpServer.Siemens
 
         public bool ConnectPortal()
         {
+            _logger?.LogInformation("Connecting to TIA Portal...");
+
             try
             {
                 _project = null;
@@ -155,6 +163,8 @@ namespace TiaMcpServer.Siemens
 
         public bool DisconnectPortal()
         {
+            _logger?.LogInformation("Disconnecting from TIA Portal...");
+
             try
             {
                 _project = null;
@@ -179,6 +189,8 @@ namespace TiaMcpServer.Siemens
 
         public State GetState()
         {
+            _logger?.LogInformation("Getting TIA Portal state...");
+
             return new State
             {
                 IsConnected = IsConnected(),
@@ -193,8 +205,12 @@ namespace TiaMcpServer.Siemens
 
         public List<string> GetOpenProjects()
         {
+            _logger?.LogInformation("Getting open projects...");
+
             if (_portal == null)
             {
+                _logger?.LogWarning("No TIA Portal instance available.");
+
                 return [];
             }
 
@@ -213,7 +229,9 @@ namespace TiaMcpServer.Siemens
 
         public bool OpenProject(string projectPath)
         {
-            if (_portal == null)
+            _logger?.LogInformation($"Opening project: {projectPath}");
+
+            if (IsPortalNull())
             {
                 return false;
             }
@@ -238,14 +256,14 @@ namespace TiaMcpServer.Siemens
                 if (openProjects.Contains(projectName))
                 {
                     // Project is already open
-                    _project = _portal.Projects.FirstOrDefault(p => p.Name == projectName);
+                    _project = _portal?.Projects.FirstOrDefault(p => p.Name == projectName);
 
                     return _project != null;
                 }
                 else
                 {
                     // see [5.3.1 Projekt öffnen, S.113]
-                    _project = _portal.Projects.OpenWithUpgrade(new FileInfo(projectPath));
+                    _project = _portal?.Projects.OpenWithUpgrade(new FileInfo(projectPath));
 
                     return _project != null;
                 }
@@ -258,12 +276,14 @@ namespace TiaMcpServer.Siemens
 
         public object? GetProjectInfo()
         {
-            if (_portal == null)
+            _logger?.LogInformation("Getting project info...");
+
+            if (IsPortalNull())
             {
                 return null;
             }
 
-            if (_project == null)
+            if (IsProjectNull())
             {
                 return null;
             }
@@ -283,7 +303,9 @@ namespace TiaMcpServer.Siemens
 
         public bool SaveProject()
         {
-            if (_project == null)
+            _logger?.LogInformation("Saving project...");
+
+            if (IsProjectNull())
             {
                 return false;
             }
@@ -295,7 +317,9 @@ namespace TiaMcpServer.Siemens
 
         public bool SaveAsProject(string path)
         {
-            if (_project == null)
+            _logger?.LogInformation($"Saving project as: {path}");
+
+            if (IsProjectNull())
             {
                 return false;
             }
@@ -309,7 +333,9 @@ namespace TiaMcpServer.Siemens
 
         public bool CloseProject()
         {
-            if (_project == null)
+            _logger?.LogInformation("Closing project...");
+
+            if (IsProjectNull())
             {
                 return false;
             }
@@ -326,15 +352,16 @@ namespace TiaMcpServer.Siemens
 
         public List<string> GetOpenSessions()
         {
-            if (_portal == null)
+            _logger?.LogInformation("Getting open sessions...");
+
+            if (IsPortalNull())
             {
                 return [];
             }
 
             var sessions = new List<string>();
 
-
-            if (_portal.LocalSessions != null)
+            if (_portal?.LocalSessions != null)
             {
                 foreach (var session in _portal.LocalSessions)
                 {
@@ -347,7 +374,9 @@ namespace TiaMcpServer.Siemens
 
         public bool OpenSession(string localSessionPath)
         {
-            if (_portal == null)
+            _logger?.LogInformation($"Opening session: {localSessionPath}");
+
+            if (IsPortalNull())
             {
                 return false;
             }
@@ -368,7 +397,7 @@ namespace TiaMcpServer.Siemens
                 if (openSessions.Contains(sessionName))
                 {
                     // Session is already open  
-                    _session = _portal.LocalSessions.FirstOrDefault(s => s.Project.Name == sessionName);
+                    _session = _portal?.LocalSessions.FirstOrDefault(s => s.Project.Name == sessionName);
                     if (_session != null)
                     {
                         // Correctly cast MultiuserProject to Project  
@@ -378,7 +407,7 @@ namespace TiaMcpServer.Siemens
                 }
                 else
                 {
-                    _session = _portal.LocalSessions.Open(new FileInfo(localSessionPath));
+                    _session = _portal?.LocalSessions.Open(new FileInfo(localSessionPath));
                     if (_session != null)
                     {
                         // Correctly cast MultiuserProject to Project  
@@ -397,7 +426,9 @@ namespace TiaMcpServer.Siemens
 
         public bool SaveSession()
         {
-            if (_session == null)
+            _logger?.LogInformation("Saving session...");
+
+            if (IsSessionNull())
             {
                 return false;
             }
@@ -408,26 +439,17 @@ namespace TiaMcpServer.Siemens
             return true;
         }
 
-        //public bool UpdateSession()
-        //{
-        //    if (_localSession == null)
-        //    {
-        //        return false;
-        //    }
-        //    // Save session
-        //    _ = _localSession.IsUptoDate;
-        //    return true;
-        //}
-
         public bool CloseSession()
         {
-            if (_session == null)
+            _logger?.LogInformation("Closing session...");
+
+            if (IsSessionNull())
             {
                 return false;
             }
 
             _project = null;
-            _session.Close();
+            _session?.Close();
             _session = null;
 
             return true;
@@ -439,25 +461,825 @@ namespace TiaMcpServer.Siemens
 
         public string GetStructure()
         {
-            if (_project == null)
+            _logger?.LogInformation("Getting project structure...");
+
+            if (IsProjectNull())
             {
                 return string.Empty;
             }
 
             StringBuilder sb = new();
 
-            sb.AppendLine($"Project: {_project.Name}");
+            sb.AppendLine($"Project: {_project?.Name}");
 
-            GetStructureDevices(sb, _project.Devices, 0);
+            GetStructureDevices(sb, _project?.Devices, 0);
 
-            GetStructureGroups(sb, _project.DeviceGroups, 0);
+            GetStructureGroups(sb, _project?.DeviceGroups, 0);
 
-            GetStructureUngroupedDeviceGroup(sb, _project.UngroupedDevicesGroup, 0);
+            GetStructureUngroupedDeviceGroup(sb, _project?.UngroupedDevicesGroup, 0);
 
             return sb.ToString();
         }
 
-        #region  private helper GetStructure...
+        
+
+        public List<Device> GetDevices(string regexName = "")
+        {
+            _logger?.LogInformation("Getting devices...");
+
+            if (IsProjectNull())
+            {
+                return [];
+            }
+
+            var list = new List<Device>();
+
+            if (_project?.Devices != null)
+            {
+                foreach (Device device in _project.Devices)
+                {
+                    list.Add(device);
+                }
+
+                foreach (var group in _project.DeviceGroups)
+                {
+                    GetDevicesRecursive(group, list, regexName);
+                }
+
+                //foreach (var group in _project.UngroupedDevicesGroup)
+                //{
+                //    GetDevicesRecursive(_project.UngroupedDevicesGroup, list, regexName);
+                //}
+            }
+
+            return list;
+        }
+
+        public Device? GetDevice(string devicePath)
+        {
+            _logger?.LogInformation($"Getting device by path: {devicePath}");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            // Retrieve the device by its path
+            return GetDeviceByPath(devicePath);
+        }
+
+        public DeviceItem? GetDeviceItem(string deviceItemPath)
+        {
+            _logger?.LogInformation($"Getting device item by path: {deviceItemPath}");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            // Retrieve the device by its path
+            return GetDeviceItemByPath(deviceItemPath);
+
+        }
+
+        #endregion
+
+        #region software
+
+        public PlcSoftware? GetPlcSoftware(string softwarePath)
+        {
+            _logger?.LogInformation($"Getting software by path: {softwarePath}");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var softwareContainer = GetSoftwareContainer(softwarePath);
+
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
+            {
+                return plcSoftware;
+            }
+
+            return null;
+        }
+
+        public CompilerResult? CompileSoftware(string softwarePath, string password = "")
+        {
+            _logger?.LogInformation($"Compiling software by path: {softwarePath}");
+
+            if (IsProjectNull())
+            {
+                return null; // "Error, no project";
+            }
+
+            var softwareContainer = GetSoftwareContainer(softwarePath);
+
+            if (!string.IsNullOrEmpty(password))
+            {
+                var deviceItem = softwareContainer?.Parent as DeviceItem;
+
+                var admin = deviceItem?.GetService<SafetyAdministration>();
+                if (admin != null)
+                {
+                    if (!admin.IsLoggedOnToSafetyOfflineProgram)
+                    {
+                        SecureString secString = new NetworkCredential("", password).SecurePassword;
+                        try
+                        {
+                            admin.LoginToSafetyOfflineProgram(secString);
+                        }
+                        catch (Exception)
+                        {
+                            return null; // "Error, login to safety offline program failed";
+                        }
+                    }
+                }
+            }
+
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
+            {
+                try
+                {
+                    ICompilable compileService = plcSoftware.GetService<ICompilable>();
+
+                    CompilerResult result = compileService.Compile();
+
+                    return result;
+                }
+                catch (Exception)
+                {
+                    return null; // "Error, compiling failed";
+                }
+            }
+
+            return null; // "Error";
+        }
+
+        #endregion
+
+        #region blocks/types
+
+        public PlcBlock? GetBlock(string softwarePath, string blockPath)
+        {
+            _logger?.LogInformation($"Getting block by path: {blockPath}");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var softwareContainer = GetSoftwareContainer(softwarePath);
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
+            {
+                var blockGroup = plcSoftware?.BlockGroup;
+
+                if (blockGroup != null)
+                {
+                    var path = blockPath.Contains("/") ? blockPath.Substring(0, blockPath.LastIndexOf("/")) : string.Empty;
+                    var regexName = blockPath.Contains("/") ? blockPath.Substring(blockPath.LastIndexOf("/") + 1) : blockPath;
+
+                    PlcBlock? block = null;
+
+                    var group = GetPlcBlockGroupByPath(softwarePath, path);
+                    if (group != null)
+                    {
+                        if (regexName.IndexOfAny(_regexChars) >= 0)
+                        {
+                            try
+                            {
+                                var regex = new Regex(regexName, RegexOptions.IgnoreCase);
+                                block = group.Blocks.FirstOrDefault(b => regex.IsMatch(b.Name)) as PlcBlock;
+                            }
+                            catch (Exception)
+                            {
+                                // Invalid regex, return null
+                                return null;
+                            }
+                        }
+                        else
+                        {
+                            block = group.Blocks.FirstOrDefault(b => b.Name.Equals(regexName, StringComparison.OrdinalIgnoreCase));
+                        }
+
+                        return block;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public PlcType? GetType(string softwarePath, string typePath)
+        {
+            _logger?.LogInformation($"Getting type by path: {typePath}");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var softwareContainer = GetSoftwareContainer(softwarePath);
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
+            {
+                var typeGroup = plcSoftware?.TypeGroup;
+
+                if (typeGroup != null)
+                {
+                    var path = typePath.Contains("/") ? typePath.Substring(0, typePath.LastIndexOf("/")) : string.Empty;
+                    var regexName = typePath.Contains("/") ? typePath.Substring(typePath.LastIndexOf("/") + 1) : typePath;
+
+                    PlcType? type = null;
+
+                    var group = GetPlcTypeGroupByPath(softwarePath, path);
+                    if (group != null)
+                    {
+                        if (regexName.IndexOfAny(_regexChars) >= 0)
+                        {
+                            try
+                            {
+                                var regex = new Regex(regexName, RegexOptions.IgnoreCase);
+                                type = group.Types.FirstOrDefault(t => regex.IsMatch(t.Name)) as PlcType;
+                            }
+                            catch (Exception)
+                            {
+                                // Invalid regex, return null
+                                return null;
+                            }
+                        }
+                        else
+                        {
+                            type = group.Types.FirstOrDefault(t => t.Name.Equals(regexName, StringComparison.OrdinalIgnoreCase));
+                        }
+
+                        return type;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public List<PlcBlock> GetBlocks(string softwarePath, string regexName = "")
+        {
+            _logger?.LogInformation("Getting blocks...");
+
+            if (IsProjectNull())
+            {
+                return [];
+            }
+
+            var list = new List<PlcBlock>();
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    var group = plcSoftware?.BlockGroup;
+
+                    if (group != null)
+                    {
+                        GetBlocksRecursive(group, list, regexName);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error getting blocks: {ex.Message}");
+            }
+
+            return list;
+        }
+
+        public List<PlcType> GetTypes(string softwarePath, string regexName = "")
+        {
+            _logger?.LogInformation("Getting types...");
+
+            if (IsProjectNull())
+            {
+                return [];
+            }
+
+            var list = new List<PlcType>();
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    var group = plcSoftware?.TypeGroup;
+
+                    if (group != null)
+                    {
+                        GetTypesRecursive(group, list, regexName);
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error getting user defined types: {ex.Message}");
+            }
+
+            return list;
+        }
+
+        public PlcBlock? ExportBlock(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
+        {
+            _logger?.LogInformation($"Exporting block by path: {blockPath}");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var block = GetBlock(softwarePath, blockPath);
+
+            if (block != null)
+            {
+                if (preservePath)
+                {
+                    var groupPath = "";
+                    if (block.Parent is PlcBlockGroup parentGroup)
+                    {
+                        groupPath = GetPlcBlockGroupPath(parentGroup);
+                    }
+
+                    exportPath = Path.Combine(exportPath, groupPath.Replace('/', '\\'), $"{block.Name}.xml");
+                }
+                else
+                {
+                    exportPath = Path.Combine(exportPath, $"{block.Name}.xml");
+                }
+
+                try
+                {
+                    if (File.Exists(exportPath))
+                    {
+                        File.Delete(exportPath);
+                    }
+
+                    block.Export(new FileInfo(exportPath), ExportOptions.None);
+
+                }
+                catch (Exception)
+                {
+                    block = null; // Export failed, return null
+                }
+            }
+
+            return block;
+        }
+
+        public PlcType? ExportType(string softwarePath, string typePath, string exportPath, bool preservePath = false)
+        {
+            _logger?.LogInformation($"Exporting type by path: {typePath}");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var type = GetType(softwarePath, typePath);
+
+            if (type != null)
+            {
+                if (preservePath)
+                {
+                    var groupPath = "";
+                    if (type.Parent is PlcTypeGroup parentGroup)
+                    {
+                        groupPath = GetPlcTypeGroupPath(parentGroup);
+                    }
+
+                    exportPath = Path.Combine(exportPath, groupPath.Replace('/', '\\'), $"{type.Name}.xml");
+                }
+                else
+                {
+                    exportPath = Path.Combine(exportPath, $"{type.Name}.xml");
+                }
+
+                try
+                {
+                    if (File.Exists(exportPath))
+                    {
+                        File.Delete(exportPath);
+                    }
+
+                    type.Export(new FileInfo(exportPath), ExportOptions.None);
+                }
+                catch (Exception)
+                {
+                    // Console.WriteLine($"Error exporting user defined type '{typeName}': {ex.Message}");
+                    type = null;
+                }
+            }
+
+            return type;
+        }
+
+        public bool ImportBlock(string softwarePath, string groupPath, string importPath)
+        {
+            _logger?.LogInformation($"Importing block from path: {importPath}");
+
+            if (IsProjectNull())
+            {
+                return false;
+            }
+
+            var softwareContainer = GetSoftwareContainer(softwarePath);
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
+            {
+                var blockGroup = plcSoftware?.BlockGroup;
+
+                if (blockGroup != null)
+                {
+
+                    var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+                    if (group == null)
+                    {
+                        return false;
+                    }
+
+                    try
+                    {
+                        // Correct the argument type by using FileInfo instead of FileStream  
+                        var fileInfo = new FileInfo(importPath);
+                        if (fileInfo.Exists)
+                        {
+                            var list = group.Blocks.Import(fileInfo, ImportOptions.Override);
+                            if (list != null && list.Count > 0)
+                            {
+                                return true;
+                            }
+                        }
+
+                    }
+                    catch (Exception)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        public bool ImportType(string softwarePath, string groupPath, string importPath)
+        {
+            _logger?.LogInformation($"Importing type from path: {importPath}");
+
+            var success = false;
+
+            if (IsProjectNull())
+            {
+                return success;
+            }
+
+            var softwareContainer = GetSoftwareContainer(softwarePath);
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
+            {
+                var typeGroup = plcSoftware?.TypeGroup;
+
+                if (typeGroup != null)
+                {
+                    var group = GetPlcTypeGroupByPath(softwarePath, groupPath);
+                    if (group == null)
+                    {
+                        return false;
+                    }
+
+                    try
+                    {
+                        // Correct the argument type by using FileInfo instead of FileStream  
+                        var fileInfo = new FileInfo(importPath);
+                        if (fileInfo.Exists)
+                        {
+                            var list = group.Types.Import(fileInfo, ImportOptions.Override);
+                            if (list != null && list.Count > 0)
+                            {
+                                return true;
+                            }
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return success;
+        }
+
+        public IEnumerable<PlcBlock>? ExportBlocks(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
+        {
+            _logger?.LogInformation("Exporting blocks...");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var exportList = new List<PlcBlock>();
+
+            try
+            {
+                var list = GetBlocks(softwarePath, regexName);
+                
+                if (list.Count > 0)
+                {
+                    // Export each block to the specified path
+                    foreach (var block in list)
+                    {
+                        var path = string.Empty;
+
+                        if (preservePath)
+                        {
+                            var groupPath = "";
+                            if (block.Parent is PlcBlockGroup parentGroup)
+                            {
+                                groupPath = GetPlcBlockGroupPath(parentGroup);
+                            }
+
+                            path = Path.Combine(exportPath, groupPath.Replace('/', '\\'), $"{block.Name}.xml");
+                        }
+                        else
+                        {
+                            path = Path.Combine(exportPath, $"{block.Name}.xml");
+                        }
+                        try
+                        {
+                            if (File.Exists(path))
+                            {
+                                File.Delete(path);
+                            }
+                            block.Export(new FileInfo(path), ExportOptions.None);
+
+                            exportList.Add(block);
+                        }
+                        catch (Exception)
+                        {
+                            // Console.WriteLine($"Error exporting block '{block.Name}': {ex.Message}");
+                            continue;
+                        }
+                    }
+                }
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error exporting blocks: {ex.Message}");
+            }
+
+            return exportList;
+        }
+
+        public IEnumerable<PlcType>? ExportTypes(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
+        {
+            _logger?.LogInformation("Exporting types...");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var exportList = new List<PlcType>();
+
+            try
+            {
+                var list = GetTypes(softwarePath, regexName);
+
+                if (list.Count > 0)
+                {
+                    // Export each type to the specified path
+                    foreach (var type in list)
+                    {
+                        var path = string.Empty;
+                        if (preservePath)
+                        {
+                            var groupPath = "";
+                            if (type.Parent is PlcTypeGroup parentGroup)
+                            {
+                                groupPath = GetPlcTypeGroupPath(parentGroup);
+                            }
+                            path = Path.Combine(exportPath, groupPath.Replace('/', '\\'), $"{type.Name}.xml");
+                        }
+                        else
+                        {
+                            path = Path.Combine(exportPath, $"{type.Name}.xml");
+                        }
+                        try
+                        {
+
+                            if (File.Exists(path))
+                            {
+                                File.Delete(path);
+                            }
+
+                            type.Export(new FileInfo(path), ExportOptions.None);
+
+                            exportList.Add(type);
+                        }
+                        catch (Exception)
+                        {
+                            // Console.WriteLine($"Error exporting user defined type '{type.Name}': {ex.Message}");
+                            continue;
+                        }
+                    }
+                }
+
+
+
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error exporting user defined types: {ex.Message}");
+            }
+
+            return exportList;
+        }
+        
+
+        public bool ExportAsDocuments(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
+        {
+            _logger?.LogInformation($"Exporting block as documents by path: {blockPath}");
+
+            if (IsProjectNull())
+            {
+                return false;
+            }
+
+            var success = false;
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    if (plcSoftware != null)
+                    {
+                        // Export code blocks as documents
+                        // https://docs.tia.siemens.cloud/r/en-us/v20/creating-and-managing-blocks/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500
+
+                        var groupPath = blockPath.Contains("/") ? blockPath.Substring(0, blockPath.LastIndexOf("/")) : string.Empty;
+                        var blockName = blockPath.Contains("/") ? blockPath.Substring(blockPath.LastIndexOf("/") + 1) : blockPath;
+
+                        var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+
+                        //group?.Blocks.ForEach(b => Console.WriteLine($"Block: {b.Name}, Type: {b.GetType().Name}"));
+
+                        // join exportPath and groupPath
+                        if (!Directory.Exists(exportPath))
+                        {
+                            Directory.CreateDirectory(exportPath);
+                        }
+
+                        if (preservePath && !string.IsNullOrEmpty(groupPath))
+                        {
+                            exportPath = Path.Combine(exportPath, groupPath);
+
+                            if (!Directory.Exists(exportPath))
+                            {
+                                Directory.CreateDirectory(exportPath);
+                            }
+                        }
+
+                        try
+                        {
+                            // delete files s7dcl/s7res if already exists
+                            var blockFiles7dclPath = Path.Combine(exportPath, $"{blockName}.s7dcl");
+                            if (File.Exists(blockFiles7dclPath))
+                            {
+                                File.Delete(blockFiles7dclPath);
+                            }
+                            var blockFiles7resPath = Path.Combine(exportPath, $"{blockName}.s7res");
+                            if (File.Exists(blockFiles7resPath))
+                            {
+                                File.Delete(blockFiles7resPath);
+                            }
+
+                            var result = group?.Blocks.Find(blockName)?.ExportAsDocuments(new DirectoryInfo(exportPath), blockName);
+
+                            if (result != null && result.State == DocumentResultState.Success)
+                            {
+                                success = true;
+                            }
+                        }
+                        catch (EngineeringNotSupportedException)
+                        {
+                            // The export or import of blocks with mixed programming languages is not possible
+                            // Console.WriteLine($"Error exporting block as document: {ex.Message}");
+                        }
+                        catch (Exception)
+                        {
+                            // Console.WriteLine($"Error creating export directory: {ex.Message}");
+                        }
+
+                    }
+
+                }
+
+
+            }
+            catch (Exception)
+            {
+                // Console.WriteLine($"Error exporting blocks as documents: {ex.Message}");
+            }
+            return success;
+        }
+
+        // TIA portal crashes when exporting blocks as documents, :-(
+        public IEnumerable<PlcBlock>? ExportBlocksAsDocuments(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
+        {
+            _logger?.LogInformation("Exporting blocks as documents...");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            var list = GetBlocks(softwarePath, regexName);
+
+            var exportList = new List<PlcBlock>();
+
+            if (list != null)
+            {
+                foreach (var block in list)
+                {
+                    try
+                    {
+                        var blockFiles7dclPath = Path.Combine(exportPath, $"{block.Name}.s7dcl");
+                        if (File.Exists(blockFiles7dclPath))
+                        {
+                            File.Delete(blockFiles7dclPath);
+                        }
+                        var blockFiles7resPath = Path.Combine(exportPath, $"{block.Name}.s7res");
+                        if (File.Exists(blockFiles7resPath))
+                        {
+                            File.Delete(blockFiles7resPath);
+                        }
+
+                        var result = block.ExportAsDocuments(new DirectoryInfo(exportPath), block.Name);
+
+                        if (result != null && result.State == DocumentResultState.Success)
+                        {
+                            exportList.Add(block);
+                        }
+                    }
+                    catch (EngineeringNotSupportedException)
+                    {
+                    }
+                    catch (Exception)
+                    {
+                    }
+                }
+            }
+
+            return exportList;
+        }
+
+        #endregion
+
+        #region private helper
+
+        private bool IsPortalNull()
+        {
+            if (_portal == null)
+            {
+                _logger?.LogWarning("No TIA portal available.");
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool IsProjectNull()
+        {
+            if (_project == null)
+            {
+                _logger?.LogWarning("No TIA project available.");
+
+                return true;
+            }
+
+            return false;
+        }
+
+        private bool IsSessionNull()
+        {
+            if (_session == null)
+            {
+                _logger?.LogWarning("No TIA session available.");
+
+                return true;
+            }
+
+            return false;
+        }
+
+        #region  GetStructure ...
 
         private string IndentText(int n)
         {
@@ -589,893 +1411,7 @@ namespace TiaMcpServer.Siemens
 
         #endregion
 
-        public List<string> GetDevices()
-        {
-            if (_project == null)
-            {
-                return [];
-            }
-
-            var list = new List<string>();
-
-            if (_project?.Devices != null)
-            {
-                foreach (Device device in _project.Devices)
-                {
-                    list.Add(device.Name);
-                }
-            }
-
-            return list;
-        }
-
-        public Device? GetDevice(string devicePath)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            // Retrieve the device by its path
-            return GetDeviceByPath(devicePath);
-        }
-
-        public DeviceItem? GetDeviceItem(string deviceItemPath)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            // Retrieve the device by its path
-            return GetDeviceItemByPath(deviceItemPath);
-
-        }
-
-        #endregion
-
-        #region software
-
-        public PlcSoftware? GetPlcSoftware(string softwarePath)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                return plcSoftware;
-            }
-
-            return null;
-        }
-
-        public CompilerResult? CompileSoftware(string softwarePath, string password = "")
-        {
-            if (_project == null)
-            {
-                return null; // "Error, no project";
-            }
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-
-            if (!string.IsNullOrEmpty(password))
-            {
-                var deviceItem = softwareContainer?.Parent as DeviceItem;
-
-                var admin = deviceItem?.GetService<SafetyAdministration>();
-                if (admin != null)
-                {
-                    if (!admin.IsLoggedOnToSafetyOfflineProgram)
-                    {
-                        SecureString secString = new NetworkCredential("", password).SecurePassword;
-                        try
-                        {
-                            admin.LoginToSafetyOfflineProgram(secString);
-                        }
-                        catch (Exception)
-                        {
-                            return null; // "Error, login to safety offline program failed";
-                        }
-                    }
-                }
-            }
-
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                try
-                {
-                    ICompilable compileService = plcSoftware.GetService<ICompilable>();
-
-                    CompilerResult result = compileService.Compile();
-
-                    return result;
-                }
-                catch (Exception)
-                {
-                    return null; // "Error, compiling failed";
-                }
-            }
-
-            return null; // "Error";
-        }
-
-        #endregion
-
-        #region blocks/types
-
-        public PlcBlock? GetBlock(string softwarePath, string blockPath)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                var blockGroup = plcSoftware?.BlockGroup;
-
-                if (blockGroup != null)
-                {
-                    var path = blockPath.Contains("/") ? blockPath.Substring(0, blockPath.LastIndexOf("/")) : string.Empty;
-                    var regexName = blockPath.Contains("/") ? blockPath.Substring(blockPath.LastIndexOf("/") + 1) : blockPath;
-
-                    PlcBlock? block = null;
-
-                    var group = GetPlcBlockGroupByPath(softwarePath, path);
-                    if (group != null)
-                    {
-                        if (regexName.IndexOfAny(_regexChars) >= 0)
-                        {
-                            try
-                            {
-                                var regex = new Regex(regexName, RegexOptions.IgnoreCase);
-                                block = group.Blocks.FirstOrDefault(b => regex.IsMatch(b.Name)) as PlcBlock;
-                            }
-                            catch (Exception)
-                            {
-                                // Invalid regex, return null
-                                return null;
-                            }
-                        }
-                        else
-                        {
-                            block = group.Blocks.FirstOrDefault(b => b.Name.Equals(regexName, StringComparison.OrdinalIgnoreCase));
-                        }
-
-                        return block;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public PlcType? GetType(string softwarePath, string typePath)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                var typeGroup = plcSoftware?.TypeGroup;
-
-                if (typeGroup != null)
-                {
-                    var path = typePath.Contains("/") ? typePath.Substring(0, typePath.LastIndexOf("/")) : string.Empty;
-                    var regexName = typePath.Contains("/") ? typePath.Substring(typePath.LastIndexOf("/") + 1) : typePath;
-
-                    PlcType? type = null;
-
-                    var group = GetPlcTypeGroupByPath(softwarePath, path);
-                    if (group != null)
-                    {
-                        if (regexName.IndexOfAny(_regexChars) >= 0)
-                        {
-                            try
-                            {
-                                var regex = new Regex(regexName, RegexOptions.IgnoreCase);
-                                type = group.Types.FirstOrDefault(t => regex.IsMatch(t.Name)) as PlcType;
-                            }
-                            catch (Exception)
-                            {
-                                // Invalid regex, return null
-                                return null;
-                            }
-                        }
-                        else
-                        {
-                            type = group.Types.FirstOrDefault(t => t.Name.Equals(regexName, StringComparison.OrdinalIgnoreCase));
-                        }
-
-                        return type;
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public List<PlcBlock> GetBlocks(string softwarePath, string regexName = "")
-        {
-            if (_project == null)
-            {
-                return [];
-            }
-
-            var list = new List<PlcBlock>();
-            try
-            {
-                var softwareContainer = GetSoftwareContainer(softwarePath);
-                if (softwareContainer?.Software is PlcSoftware plcSoftware)
-                {
-                    var group = plcSoftware?.BlockGroup;
-
-                    if (group != null)
-                    {
-                        GetBlocksRecursive(group, list, regexName);
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Console.WriteLine($"Error getting blocks: {ex.Message}");
-            }
-
-            return list;
-        }
-
-        public List<PlcType> GetTypes(string softwarePath, string regexName = "")
-        {
-            if (_project == null)
-            {
-                return [];
-            }
-
-            var list = new List<PlcType>();
-            try
-            {
-                var softwareContainer = GetSoftwareContainer(softwarePath);
-                if (softwareContainer?.Software is PlcSoftware plcSoftware)
-                {
-                    var group = plcSoftware?.TypeGroup;
-
-                    if (group != null)
-                    {
-                        GetTypesRecursive(group, list, regexName);
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Console.WriteLine($"Error getting user defined types: {ex.Message}");
-            }
-
-            return list;
-        }
-
-        private bool GetBlocksRecursive(PlcBlockGroup group, List<PlcBlock> list, string regexName = "")
-        {
-            var anySuccess = false;
-
-            foreach (var composition in group.Blocks)
-            {
-                if (composition is PlcBlock block)
-                {
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(block.Name, regexName, RegexOptions.IgnoreCase))
-                        {
-                            continue; // Skip this block if it doesn't match the pattern
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Invalid regex pattern, skip this block
-                        continue;
-                    }
-
-                    var groupPath = GetPlcBlockGroupPath(group);
-
-                    list.Add(block);
-
-                    anySuccess = true;
-                }
-            }
-
-            foreach (var subgroup in group.Groups)
-            {
-                anySuccess = GetBlocksRecursive(subgroup, list, regexName);
-            }
-
-            return anySuccess;
-        }
-
-        private bool GetTypesRecursive(PlcTypeGroup group, List<PlcType> list, string regexName = "")
-        {
-            var anySuccess = false;
-
-            foreach (var composition in group.Types)
-            {
-                if (composition is PlcType type)
-                {
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(type.Name, regexName, RegexOptions.IgnoreCase))
-                        {
-                            continue; // Skip this block if it doesn't match the pattern
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Invalid regex pattern, skip this block
-                        continue;
-                    }
-
-                    var groupPath = GetPlcTypeGroupPath(group);
-
-                    //list.Add($"{groupPath}/{type.Name}, '{type.ModifiedDate}'");
-                    list.Add(type);
-
-                    anySuccess = true;
-                }
-
-            }
-
-            foreach (PlcTypeGroup subgroup in group.Groups)
-            {
-                anySuccess = GetTypesRecursive(subgroup, list, regexName);
-            }
-
-            return anySuccess;
-        }
-
-        public PlcBlock? ExportBlock(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            PlcBlock? block = null;
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                var blockGroup = plcSoftware?.BlockGroup;
-
-                if (blockGroup != null)
-                {
-                    var path = blockPath.Contains("/") ? blockPath.Substring(0, blockPath.LastIndexOf("/")) : string.Empty;
-                    var name = blockPath.Contains("/") ? blockPath.Substring(blockPath.LastIndexOf("/") + 1) : blockPath;
-
-                    var group = GetPlcBlockGroupByPath(softwarePath, path);
-                    if (group == null)
-                    {
-                        return null;
-                    }
-
-                    block = group.Blocks.FirstOrDefault(b => b.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-
-                    if (block != null)
-                    {
-                        if (preservePath)
-                        {
-                            exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{block.Name}.xml");
-                        }
-                        else
-                        {
-                            exportPath = Path.Combine(exportPath, $"{block.Name}.xml");
-                        }
-
-                        try
-                        {
-
-                            if (File.Exists(exportPath))
-                            {
-                                File.Delete(exportPath);
-                            }
-
-                            block.Export(new FileInfo(exportPath), ExportOptions.None);
-
-                        }
-                        catch (Exception)
-                        {
-                            block = null; // Export failed, return null
-                        }
-                    }
-                }
-            }
-
-            return block;
-        }
-
-        public bool ImportBlock(string softwarePath, string groupPath, string importPath)
-        {
-            if (_project == null)
-            {
-                return false;
-            }
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                var blockGroup = plcSoftware?.BlockGroup;
-
-                if (blockGroup != null)
-                {
-
-                    var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
-                    if (group == null)
-                    {
-                        return false;
-                    }
-
-                    try
-                    {
-                        // Correct the argument type by using FileInfo instead of FileStream  
-                        var fileInfo = new FileInfo(importPath);
-                        if (fileInfo.Exists)
-                        {
-                            var list = group.Blocks.Import(fileInfo, ImportOptions.Override);
-                            if (list != null && list.Count > 0)
-                            {
-                                return true;
-                            }
-                        }
-
-                    }
-                    catch (Exception)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return false;
-        }
-
-        public PlcType? ExportType(string softwarePath, string typePath, string exportPath, bool preservePath = false)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            PlcType? type = null;
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                var typeGroup = plcSoftware?.TypeGroup;
-
-                if (typeGroup != null)
-                {
-                    var path = typePath.Contains("/") ? typePath.Substring(0, typePath.LastIndexOf("/")) : string.Empty;
-                    var name = typePath.Contains("/") ? typePath.Substring(typePath.LastIndexOf("/") + 1) : typePath;
-
-                    var group = GetPlcTypeGroupByPath(softwarePath, path);
-                    if (group == null)
-                    {
-                        return null;
-                    }
-
-                    type = group.Types.FirstOrDefault(t => t.Name.Equals(name, StringComparison.OrdinalIgnoreCase));
-                    if (type != null)
-                    {
-                        if (preservePath)
-                        {
-                            exportPath = Path.Combine(exportPath, path.Replace('/', '\\'), $"{type.Name}.xml");
-                        }
-                        else
-                        {
-                            exportPath = Path.Combine(exportPath, $"{type.Name}.xml");
-                        }
-
-                        try
-                        {
-
-                            if (File.Exists(exportPath))
-                            {
-                                File.Delete(exportPath);
-                            }
-
-                            type.Export(new FileInfo(exportPath), ExportOptions.None);
-                        }
-                        catch (Exception)
-                        {
-                            // Console.WriteLine($"Error exporting user defined type '{typeName}': {ex.Message}");
-                            type = null;
-                        }
-                    }
-                }
-            }
-
-            return type;
-        }
-
-        public bool ImportType(string softwarePath, string groupPath, string importPath)
-        {
-            var success = false;
-
-            if (_project == null)
-            {
-                return success;
-            }
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (softwareContainer?.Software is PlcSoftware plcSoftware)
-            {
-                var typeGroup = plcSoftware?.TypeGroup;
-
-                if (typeGroup != null)
-                {
-                    var group = GetPlcTypeGroupByPath(softwarePath, groupPath);
-                    if (group == null)
-                    {
-                        return false;
-                    }
-
-                    try
-                    {
-                        // Correct the argument type by using FileInfo instead of FileStream  
-                        var fileInfo = new FileInfo(importPath);
-                        if (fileInfo.Exists)
-                        {
-                            var list = group.Types.Import(fileInfo, ImportOptions.Override);
-                            if (list != null && list.Count > 0)
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        return false;
-                    }
-                }
-            }
-
-            return success;
-        }
-
-        public IEnumerable<PlcBlock>? ExportBlocks(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            var list = new List<PlcBlock>();
-            var success = false;
-            try
-            {
-                var softwareContainer = GetSoftwareContainer(softwarePath);
-                if (softwareContainer?.Software is PlcSoftware plcSoftware)
-                {
-                    var blockGroup = plcSoftware?.BlockGroup;
-
-                    if (blockGroup != null)
-                    {
-                        success = ExportBlocksRecursive(exportPath, exportPath, blockGroup, list, regexName, preservePath) || success;
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Console.WriteLine($"Error exporting blocks: {ex.Message}");
-            }
-
-            return list;
-        }
-
-        public IEnumerable<PlcType>? ExportTypes(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
-        {
-            var success = false;
-
-            if (_project == null)
-            {
-                return null;
-            }
-
-            var list = new List<PlcType>();
-            try
-            {
-                var softwareContainer = GetSoftwareContainer(softwarePath);
-                if (softwareContainer?.Software is PlcSoftware plcSoftware)
-                {
-                    var udtGroup = plcSoftware?.TypeGroup;
-
-                    if (udtGroup != null)
-                    {
-                        success = ExportTypesRecursive(exportPath, exportPath, udtGroup, list, regexName, preservePath) || success;
-                    }
-                }
-            }
-            catch (Exception)
-            {
-                // Console.WriteLine($"Error exporting user defined types: {ex.Message}");
-            }
-
-            return list;
-        }
-
-        private bool ExportBlocksRecursive(string exportPath, string subPath, PlcBlockGroup group, List<PlcBlock> list, string regexName = "", bool preservePath = false)
-        {
-            var anySuccess = false;
-
-            foreach (var composition in group.Blocks)
-            {
-                if (composition is PlcBlock block)
-                {
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(block.Name, regexName, RegexOptions.IgnoreCase))
-                        {
-                            // Skip this block if it doesn't match the pattern
-                            continue;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Invalid regex pattern, skip this block
-                        continue;
-                    }
-
-                    var path = string.Empty;
-
-                    if (preservePath)
-                    {
-                        path = Path.Combine(subPath, $"{block.Name}.xml"); // group.Name.Replace('/', '\\'),
-                    }
-                    else
-                    {
-                        path = Path.Combine(exportPath, $"{block.Name}.xml");
-                    }
-
-                    try
-                    {
-
-                        if (File.Exists(path))
-                        {
-                            File.Delete(path);
-                        }
-
-                        block.Export(new FileInfo(path), ExportOptions.None);
-
-                        list.Add(block);
-
-                        anySuccess = true;
-                    }
-                    catch (Exception)
-                    {
-                        // Console.WriteLine($"Error exporting block '{block.Name}': {ex.Message}");
-                        continue;
-                    }
-                }
-            }
-
-            foreach (var subgroup in group.Groups)
-            {
-                var newSubPath = Path.Combine(subPath, subgroup.Name);
-
-                anySuccess = ExportBlocksRecursive(exportPath, newSubPath, subgroup, list, regexName, preservePath) || anySuccess;
-            }
-
-            return anySuccess;
-        }
-
-        private bool ExportTypesRecursive(string exportPath, string subPath, PlcTypeGroup group, List<PlcType> list, string regexName = "", bool preservePath = false)
-        {
-            var anySuccess = false;
-
-            foreach (PlcType composition in group.Types)
-            {
-                if (composition is PlcType type)
-                {
-                    try
-                    {
-                        if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(type.Name, regexName, RegexOptions.IgnoreCase))
-                        {
-                            // Skip this block if it doesn't match the pattern
-                            continue;
-                        }
-                    }
-                    catch (Exception)
-                    {
-                        // Invalid regex pattern, skip this block
-                        continue;
-                    }
-
-                    var path = string.Empty;
-
-                    if (preservePath)
-                    {
-                        path = Path.Combine(subPath, $"{type.Name}.xml"); // group.Name.Replace('/', '\\'), 
-                    }
-                    else
-                    {
-                        path = Path.Combine(exportPath, $"{type.Name}.xml");
-                    }
-
-                    try
-                    {
-
-                        if (File.Exists(path))
-                        {
-                            File.Delete(path);
-                        }
-
-                        type.Export(new FileInfo(path), ExportOptions.None);
-
-                        list.Add(type);
-
-                        anySuccess = true;
-                    }
-                    catch (Exception)
-                    {
-                        // Console.WriteLine($"Error exporting UDT '{udt.Name}': {ex.Message}");
-                        continue;
-                    }
-                }
-            }
-
-            foreach (PlcTypeGroup subgroup in group.Groups)
-            {
-                var newSubPath = Path.Combine(subPath, subgroup.Name);
-
-                anySuccess = ExportTypesRecursive(exportPath, newSubPath, subgroup, list, regexName, preservePath) || anySuccess;
-            }
-
-            return anySuccess;
-        }
-
-        public bool ExportAsDocuments(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
-        {
-            if (_project == null)
-            {
-                return false;
-            }
-
-            var success = false;
-
-            try
-            {
-                var softwareContainer = GetSoftwareContainer(softwarePath);
-                if (softwareContainer?.Software is PlcSoftware plcSoftware)
-                {
-                    if (plcSoftware != null)
-                    {
-                        // Export code blocks as documents
-                        // https://docs.tia.siemens.cloud/r/en-us/v20/creating-and-managing-blocks/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500
-
-                        var groupPath = blockPath.Contains("/") ? blockPath.Substring(0, blockPath.LastIndexOf("/")) : string.Empty;
-                        var blockName = blockPath.Contains("/") ? blockPath.Substring(blockPath.LastIndexOf("/") + 1) : blockPath;
-
-                        var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
-
-                        //group?.Blocks.ForEach(b => Console.WriteLine($"Block: {b.Name}, Type: {b.GetType().Name}"));
-
-                        // join exportPath and groupPath
-                        if (!Directory.Exists(exportPath))
-                        {
-                            Directory.CreateDirectory(exportPath);
-                        }
-
-                        if (preservePath && !string.IsNullOrEmpty(groupPath))
-                        {
-                            exportPath = Path.Combine(exportPath, groupPath);
-
-                            if (!Directory.Exists(exportPath))
-                            {
-                                Directory.CreateDirectory(exportPath);
-                            }
-                        }
-
-                        try
-                        {
-                            // delete files s7dcl/s7res if already exists
-                            var blockFiles7dclPath = Path.Combine(exportPath, $"{blockName}.s7dcl");
-                            if (File.Exists(blockFiles7dclPath))
-                            {
-                                File.Delete(blockFiles7dclPath);
-                            }
-                            var blockFiles7resPath = Path.Combine(exportPath, $"{blockName}.s7res");
-                            if (File.Exists(blockFiles7resPath))
-                            {
-                                File.Delete(blockFiles7resPath);
-                            }
-
-                            var result = group?.Blocks.Find(blockName)?.ExportAsDocuments(new DirectoryInfo(exportPath), blockName);
-
-                            if (result != null && result.State == DocumentResultState.Success)
-                            {
-                                success = true;
-                            }
-                        }
-                        catch (EngineeringNotSupportedException)
-                        {
-                            // The export or import of blocks with mixed programming languages is not possible
-                            // Console.WriteLine($"Error exporting block as document: {ex.Message}");
-                        }
-                        catch (Exception)
-                        {
-                            // Console.WriteLine($"Error creating export directory: {ex.Message}");
-                        }
-
-                    }
-
-                }
-
-
-            }
-            catch (Exception)
-            {
-                // Console.WriteLine($"Error exporting blocks as documents: {ex.Message}");
-            }
-            return success;
-        }
-
-        // TIA portal crashes when exporting blocks as documents, :-(
-        public IEnumerable<PlcBlock>? ExportBlocksAsDocuments(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
-        {
-            if (_project == null)
-            {
-                return null;
-            }
-
-            var list = GetBlocks(softwarePath, regexName);
-
-            List<PlcBlock>? exportedList = null;
-
-            if (list != null)
-            {
-                exportedList = [];
-
-                foreach (var block in list)
-                {
-                    try
-                    {
-                        var blockFiles7dclPath = Path.Combine(exportPath, $"{block.Name}.s7dcl");
-                        if (File.Exists(blockFiles7dclPath))
-                        {
-                            File.Delete(blockFiles7dclPath);
-                        }
-                        var blockFiles7resPath = Path.Combine(exportPath, $"{block.Name}.s7res");
-                        if (File.Exists(blockFiles7resPath))
-                        {
-                            File.Delete(blockFiles7resPath);
-                        }
-
-                        var result = block.ExportAsDocuments(new DirectoryInfo(exportPath), block.Name);
-
-                        if (result != null && result.State == DocumentResultState.Success)
-                        {
-                            exportedList.Add(block);
-                        }
-                    }
-                    catch (EngineeringNotSupportedException)
-                    {
-                    }
-                    catch (Exception)
-                    {
-                    }
-                }
-            }
-
-            return exportedList;
-        }
-
-        #endregion
-
-        #region private helper
+        #region GetSoftwareContainer ...
 
         private SoftwareContainer? GetSoftwareContainer(string softwarePath)
         {
@@ -1606,6 +1542,10 @@ namespace TiaMcpServer.Siemens
 
             return null;
         }
+
+        #endregion
+
+        #region Get...ByPath
 
         private Device? GetDeviceByPath(string devicePath)
         {
@@ -1888,7 +1828,119 @@ namespace TiaMcpServer.Siemens
 
         #endregion
 
+        #region GetRecursive ...
+
+        private bool GetDevicesRecursive(DeviceUserGroup group, List<Device> list, string regexName = "")
+        {
+            var anySuccess = false;
+
+            foreach (var composition in group.Devices)
+            {
+                if (composition is Device device)
+                {
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(device.Name, regexName, RegexOptions.IgnoreCase))
+                        {
+                            continue; // Skip this device if it doesn't match the pattern
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Invalid regex pattern, skip this device
+                        continue;
+                    }
+
+                    list.Add(device);
+
+                    anySuccess = true;
+                }
+            }
+
+            foreach (var subgroup in group.Groups)
+            {
+                anySuccess = GetDevicesRecursive(subgroup, list, regexName);
+            }
+
+            return anySuccess;
+        }
+
+        private bool GetBlocksRecursive(PlcBlockGroup group, List<PlcBlock> list, string regexName = "")
+        {
+            var anySuccess = false;
+
+            foreach (var composition in group.Blocks)
+            {
+                if (composition is PlcBlock block)
+                {
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(block.Name, regexName, RegexOptions.IgnoreCase))
+                        {
+                            continue; // Skip this block if it doesn't match the pattern
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Invalid regex pattern, skip this block
+                        continue;
+                    }
+
+                    list.Add(block);
+
+                    anySuccess = true;
+                }
+            }
+
+            foreach (var subgroup in group.Groups)
+            {
+                anySuccess = GetBlocksRecursive(subgroup, list, regexName);
+            }
+
+            return anySuccess;
+        }
+
+        private bool GetTypesRecursive(PlcTypeGroup group, List<PlcType> list, string regexName = "")
+        {
+            var anySuccess = false;
+
+            foreach (var composition in group.Types)
+            {
+                if (composition is PlcType type)
+                {
+                    try
+                    {
+                        if (!string.IsNullOrEmpty(regexName) && !Regex.IsMatch(type.Name, regexName, RegexOptions.IgnoreCase))
+                        {
+                            continue; // Skip this block if it doesn't match the pattern
+                        }
+                    }
+                    catch (Exception)
+                    {
+                        // Invalid regex pattern, skip this block
+                        continue;
+                    }
+
+                    list.Add(type);
+
+                    anySuccess = true;
+                }
+
+            }
+
+            foreach (PlcTypeGroup subgroup in group.Groups)
+            {
+                anySuccess = GetTypesRecursive(subgroup, list, regexName);
+            }
+
+            return anySuccess;
+        }
+
+        #endregion
+
+        #endregion
+
     }
 
-    
+
 }

@@ -1,6 +1,6 @@
-﻿using ModelContextProtocol.Server;
-using Siemens.Engineering;
-using Siemens.Engineering.HW;
+﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
+using ModelContextProtocol.Server;
 using Siemens.Engineering.SW.Blocks;
 using System;
 using System.Collections.Generic;
@@ -15,16 +15,49 @@ namespace TiaMcpServer.ModelContextProtocol
     [McpServerToolType]
     public static class McpServer
     {
-        private static readonly Portal _portal = new();
+        private static IServiceProvider? _services;
+        private static Portal? _portal;
+
+        public static ILogger? Logger { get; set; }
+
+        public static Portal Portal
+        {
+            get
+            {
+                if (_services !=null)
+                {
+                    return _services.GetRequiredService<Portal>();
+                }
+                else
+                {
+                    if (_portal == null)
+                    {
+                        _portal = new Portal();
+                    }
+                    return _portal;
+                }
+            }
+            set
+            {
+                _portal = value ?? throw new ArgumentNullException(nameof(value), "Portal cannot be null");
+            }
+        }
+
+        public static void SetServiceProvider(IServiceProvider services)
+        {
+            _services = services;
+        }
 
         #region portal
 
         [McpServerTool, Description("Connect to TIA-Portal")]
         public static ResponseConnect Connect()
         {
+            Logger?.LogInformation("Connecting to TIA Portal...");
+
             try
             {
-                if (_portal.ConnectPortal())
+                if (Portal.ConnectPortal())
                 {
                     return new ResponseConnect
                     {
@@ -52,7 +85,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.DisconnectPortal())
+                if (Portal.DisconnectPortal())
                 {
                     return new ResponseDisconnect
                     {
@@ -84,7 +117,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var state = _portal.GetState();
+                var state = Portal.GetState();
 
                 if (state != null)
                 {
@@ -123,9 +156,9 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var list = _portal.GetOpenProjects();
+                var list = Portal.GetOpenProjects();
 
-                list.AddRange(_portal.GetOpenSessions());
+                list.AddRange(Portal.GetOpenSessions());
 
                 return new ResponseOpenProjects
                 {
@@ -150,7 +183,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                _portal.CloseProject();
+                Portal.CloseProject();
 
                 // get project extension
                 string extension = Path.GetExtension(path).ToLowerInvariant();
@@ -166,11 +199,11 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (extension.StartsWith(".ap"))
                 {
-                    success = _portal.OpenProject(path);
+                    success = Portal.OpenProject(path);
                 }
                 if (extension.StartsWith(".als"))
                 {
-                    success = _portal.OpenSession(path);
+                    success = Portal.OpenSession(path);
                 }
 
                 if (success)
@@ -201,9 +234,9 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.IsLocalSession)
+                if (Portal.IsLocalSession)
                 {
-                    if (_portal.SaveSession())
+                    if (Portal.SaveSession())
                     {
                         return new ResponseSaveProject
                         {
@@ -222,7 +255,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    if (_portal.SaveProject())
+                    if (Portal.SaveProject())
                     {
                         return new ResponseSaveProject
                         {
@@ -252,13 +285,13 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.IsLocalSession)
+                if (Portal.IsLocalSession)
                 {
                     throw new McpException(-32000, $"Cannot save local session as '{newProjectPath}'");
                 }
                 else
                 {
-                    if (_portal.SaveAsProject(newProjectPath))
+                    if (Portal.SaveAsProject(newProjectPath))
                     {
                         return new ResponseSaveAsProject
                         {
@@ -290,9 +323,9 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 bool success;
 
-                if (_portal.IsLocalSession)
+                if (Portal.IsLocalSession)
                 {
-                    success = _portal.CloseSession();
+                    success = Portal.CloseSession();
                     if (success)
                     {
                         return new ResponseCloseProject
@@ -312,7 +345,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    success = _portal.CloseProject();
+                    success = Portal.CloseProject();
                     if (success)
                     {
                         return new ResponseCloseProject
@@ -347,7 +380,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var structure = _portal.GetStructure();
+                var structure = Portal.GetStructure();
 
                 if (!string.IsNullOrEmpty(structure))
                 {
@@ -379,7 +412,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var device = _portal.GetDevice(devicePath);
+                var device = Portal.GetDevice(devicePath);
 
                 if (device != null)
                 {
@@ -415,7 +448,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var deviceItem = _portal.GetDeviceItem(deviceItemPath);
+                var deviceItem = Portal.GetDeviceItem(deviceItemPath);
 
                 if (deviceItem != null)
                 {
@@ -450,13 +483,29 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var list = _portal.GetDevices();
+                var list = Portal.GetDevices();
+                var responseList = new List<ResponseDeviceInfo>();
+
                 if (list != null)
                 {
+                    foreach (var device in list)
+                    {
+                        if (device != null)
+                        {
+                            var attributes = Helper.GetAttributeList(device);
+                            responseList.Add(new ResponseDeviceInfo
+                            {
+                                Name = device.Name,
+                                Attributes = attributes,
+                                Description = device.ToString()
+                            });
+                        }
+                    }
+
                     return new ResponseDevices
                     {
                         Message = "Devices retrieved",
-                        Items = list,
+                        Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
@@ -485,7 +534,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var software = _portal.GetPlcSoftware(softwarePath);
+                var software = Portal.GetPlcSoftware(softwarePath);
                 if (software != null)
                 {
 
@@ -522,7 +571,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var result = _portal.CompileSoftware(softwarePath, password);
+                var result = Portal.CompileSoftware(softwarePath, password);
                 if (result != null && !result.State.ToString().Equals("Error"))
                 {
                     return new ResponseCompileSoftware
@@ -557,7 +606,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var block = _portal.GetBlock(softwarePath, blockPath);
+                var block = Portal.GetBlock(softwarePath, blockPath);
                 if (block != null)
                 {
                     var attributes = Helper.GetAttributeList(block);
@@ -601,7 +650,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var list = _portal.GetBlocks(softwarePath, regexName);
+                var list = Portal.GetBlocks(softwarePath, regexName);
 
                 var responseList = new List<ResponseBlockInfo>();
                 foreach (var block in list)
@@ -660,7 +709,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var block = _portal.ExportBlock(softwarePath, blockPath, exportPath, preservePath);
+                var block = Portal.ExportBlock(softwarePath, blockPath, exportPath, preservePath);
                 if (block != null)
                 {
                     return new ResponseExportBlock
@@ -692,7 +741,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.ImportBlock(softwarePath, groupPath, importPath))
+                if (Portal.ImportBlock(softwarePath, groupPath, importPath))
                 {
                     return new ResponseImportBlock
                     {
@@ -724,7 +773,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var list = _portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath);
+                var list = Portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath);
                 if (list != null)
                 {
                     var responseList = new List<ResponseBlockInfo>();
@@ -784,7 +833,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var type = _portal.GetType(softwarePath, typePath);
+                var type = Portal.GetType(softwarePath, typePath);
                 if (type != null)
                 {
                     var attributes = Helper.GetAttributeList(type);
@@ -825,7 +874,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var list = _portal.GetTypes(softwarePath, regexName);
+                var list = Portal.GetTypes(softwarePath, regexName);
 
                 var responseList = new List<ResponseTypeInfo>();
                 foreach (var type in list)
@@ -881,7 +930,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var type = _portal.ExportType(softwarePath, typePath, exportPath, preservePath);
+                var type = Portal.ExportType(softwarePath, typePath, exportPath, preservePath);
                 if (type != null)
                 {
                     return new ResponseExportType
@@ -913,7 +962,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.ImportType(softwarePath, groupPath, importPath))
+                if (Portal.ImportType(softwarePath, groupPath, importPath))
                 {
                     return new ResponseImportType
                     {
@@ -945,7 +994,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var list = _portal.ExportTypes(softwarePath, exportPath, regexName, preservePath);
+                var list = Portal.ExportTypes(softwarePath, exportPath, regexName, preservePath);
                 if (list != null)
                 {
                     var responseList = new List<ResponseTypeInfo>();
@@ -1004,7 +1053,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                if (_portal.ExportAsDocuments(softwarePath, blockPath, exportPath, preservePath))
+                if (Portal.ExportAsDocuments(softwarePath, blockPath, exportPath, preservePath))
                 {
                     return new ResponseExportAsDocuments
                     {
@@ -1036,7 +1085,7 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
-                var list = _portal.ExportBlocksAsDocuments(softwarePath, exportPath, regexName, preservePath);
+                var list = Portal.ExportBlocksAsDocuments(softwarePath, exportPath, regexName, preservePath);
                 if (list != null)
                 {
                     var respnseList = new List<ResponseBlockInfo>();

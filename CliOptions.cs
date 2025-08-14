@@ -3,7 +3,7 @@
     public class CliOptions
     {
         public int? TiaMajorVersion { get; set; }
-        public string? Transport { get; set; } // "stdio" or "http"
+        public int? Logging { get; set; } // "stdio" or "http"
 
         public static CliOptions ParseArgs(string[] args)
         {
@@ -21,11 +21,11 @@
                         }
                         break;
 
-                    case "-transport":
-                    case "--transport":
-                        if (i + 1 < args.Length)
+                    case "-logging":
+                    case "--logging":
+                        if (i + 1 < args.Length && int.TryParse(args[i + 1], out int l))
                         {
-                            options.Transport = args[i + 1].ToLower();
+                            options.Logging = l;
                             i++;
                         }
                         break;

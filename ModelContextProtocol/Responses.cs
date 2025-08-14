@@ -10,6 +10,56 @@ namespace TiaMcpServer.ModelContextProtocol
         public JsonObject? Meta { get; set; }
     }
 
+    public class ResponseAttributes : ResponseMessage
+    {
+        public IEnumerable<Attribute>? Attributes { get; set; }
+    }
+
+    public class ResponseSoftwareInfo : ResponseAttributes
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class ResponseDeviceInfo : ResponseAttributes
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class ResponseDeviceItemInfo : ResponseAttributes
+    {
+        public string? Name { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class ResponseBlockInfo : ResponseAttributes
+    {
+        //public string? Path { get; set; }
+        public string? TypeName { get; set; }
+        public string? Name { get; set; }
+        public string? Namespace { get; set; }
+        public string? ProgrammingLanguage { get; set; }
+        public string? MemoryLayout { get; set; }
+        public bool? IsConsistent { get; set; }
+        public string? HeaderName { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+        public bool? IsKnowHowProtected { get; set; }
+        public string? Description { get; set; }
+    }
+
+    public class ResponseTypeInfo : ResponseAttributes
+    {
+        //public string? Path { get; set; }
+        public string? Name { get; set; }
+        public string? TypeName { get; set; }
+        public string? Namespace { get; set; }
+        public bool? IsConsistent { get; set; }
+        public DateTime? ModifiedDate { get; set; }
+        public bool? IsKnowHowProtected { get; set; }
+        public string? Description { get; set; }
+    }
+
     public class ResponseConnect : ResponseMessage
     {
     }
@@ -51,52 +101,15 @@ namespace TiaMcpServer.ModelContextProtocol
         public string? Structure { get; set; }
     }
 
-    public class ResponseDeviceInfo : ResponseMessage
-    {
-        public string? Name { get; set; }
-        public string? Description { get; set; }
-        public IEnumerable<Attribute>? Attributes { get; set; }
-    }
-
-    public class ResponseDeviceItemInfo : ResponseMessage
-    {
-        public string? Name { get; set; }
-        public string? Description { get; set; }
-        public IEnumerable<Attribute>? Attributes { get; set; }
-    }
-
     public class ResponseDevices : ResponseMessage
     {
-        public IEnumerable<string>? Items { get; set; }
+        public IEnumerable<ResponseDeviceInfo>? Items { get; set; }
     }
-
-    public class ResponseSoftwareInfo : ResponseMessage
-    {
-        public string? Name { get; set; }
-        public string? Description { get; set; }
-        public IEnumerable<Attribute>? Attributes { get; set; }
-    }
-
+    
     public class ResponseCompileSoftware : ResponseMessage
     {
     }
-
-    public class ResponseBlockInfo : ResponseMessage
-    {
-        //public string? Path { get; set; }
-        public string? TypeName { get; set; }
-        public string? Name { get; set; }
-        public string? Namespace { get; set; }
-        public string? ProgrammingLanguage { get; set; }
-        public string? MemoryLayout { get; set; }
-        public bool? IsConsistent { get; set; }
-        public string? HeaderName { get; set; }
-        public DateTime? ModifiedDate { get; set; }
-        public bool? IsKnowHowProtected { get; set; }
-        public string? Description { get; set; }
-        public IEnumerable<Attribute>? Attributes { get; set; }
-    }
-
+    
     public class ResponseBlocks : ResponseMessage
     {
         public IEnumerable<ResponseBlockInfo>? Items { get; set; }
@@ -113,19 +126,6 @@ namespace TiaMcpServer.ModelContextProtocol
     public class ResponseExportBlocks : ResponseMessage
     {
         public IEnumerable<ResponseBlockInfo>? Items { get; set; }
-    }
-
-    public class ResponseTypeInfo : ResponseMessage
-    {
-        //public string? Path { get; set; }
-        public string? Name { get; set; }
-        public string? TypeName { get; set; }
-        public string? Namespace { get; set; }
-        public bool? IsConsistent { get; set; }
-        public DateTime? ModifiedDate { get; set; }
-        public bool? IsKnowHowProtected { get; set; }
-        public string? Description { get; set; }
-        public IEnumerable<Attribute>? Attributes { get; set; }
     }
 
     public class ResponseTypes : ResponseMessage

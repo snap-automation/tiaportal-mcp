@@ -5,7 +5,7 @@ namespace TiaMcpServer.Siemens
 {
     public static class Openness
     {
-        public static int TiaMajorVersion { get; private set; } // = 20; // Default to TIA Portal V20
+        public static int TiaMajorVersion { get; private set; }
 
         public static void Initialize(int? tiaMajorVersion = 20)
         {
