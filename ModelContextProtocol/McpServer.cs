@@ -151,19 +151,34 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region project/session
 
-        [McpServerTool(Name = "GetOpenProjects"), Description("Get list of open local projects/sessions")]
-        public static ResponseOpenProjects GetOpenProjects()
+        [McpServerTool(Name = "GetProject"), Description("Get open local project/session")]
+        public static ResponseGetProjects GetProjects()
         {
             try
             {
-                var list = Portal.GetOpenProjects();
+                var list = Portal.GetProjects();
 
-                list.AddRange(Portal.GetOpenSessions());
+                list.AddRange(Portal.GetSessions());
 
-                return new ResponseOpenProjects
+                var responseList = new List<ResponseProjectInfo>();
+                foreach (var project in list)
+                {
+                    var attributes = Helper.GetAttributeList(project);
+
+                    if (project != null)
+                    {
+                        responseList.Add(new ResponseProjectInfo
+                        {
+                            Name = project.Name,
+                            Attributes = attributes
+                        });
+                    }
+                }
+
+                return new ResponseGetProjects
                 {
                     Message = "Open projects and sessions retrieved",
-                    Items = list,
+                    Items = responseList,
                     Meta = new JsonObject
                     {
                         ["timestamp"] = DateTime.Now,

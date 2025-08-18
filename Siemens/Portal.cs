@@ -211,7 +211,7 @@ namespace TiaMcpServer.Siemens
 
         #region project
 
-        public List<string> GetOpenProjects()
+        public List<ProjectBase> GetProjects()
         {
             _logger?.LogInformation("Getting open projects...");
 
@@ -222,13 +222,13 @@ namespace TiaMcpServer.Siemens
                 return [];
             }
 
-            var projects = new List<string>();
+            var projects = new List<ProjectBase>();
 
             if (_portal.Projects != null)
             {
                 foreach (var project in _portal.Projects)
                 {
-                    projects.Add(project.Name);
+                    projects.Add(project);
                 }
             }
 
@@ -258,10 +258,10 @@ namespace TiaMcpServer.Siemens
 
             try
             {
-                var openProjects = GetOpenProjects();
+                var projects = GetProjects();
                 var projectName = Path.GetFileNameWithoutExtension(projectPath);
 
-                if (openProjects.Contains(projectName))
+                if (!string.IsNullOrEmpty(projectName) && projects.Any(p => p.Name.Equals(projectName)))
                 {
                     // Project is already open
                     _project = _portal?.Projects.FirstOrDefault(p => p.Name == projectName);
@@ -358,22 +358,22 @@ namespace TiaMcpServer.Siemens
 
         #region session
 
-        public List<string> GetOpenSessions()
+        public List<ProjectBase> GetSessions()
         {
-            _logger?.LogInformation("Getting open sessions...");
+            _logger?.LogInformation("Getting open local sessions...");
 
             if (IsPortalNull())
             {
                 return [];
             }
 
-            var sessions = new List<string>();
+            var sessions = new List<ProjectBase>();
 
             if (_portal?.LocalSessions != null)
             {
                 foreach (var session in _portal.LocalSessions)
                 {
-                    sessions.Add(session.Project.Name);
+                    sessions.Add(session.Project as ProjectBase);
                 }
             }
 
@@ -398,11 +398,11 @@ namespace TiaMcpServer.Siemens
 
             try
             {
-                var openSessions = GetOpenSessions();
+                var sessions = GetSessions();
                 var projectName = Path.GetFileNameWithoutExtension(localSessionPath);
                 var sessionName = Regex.Replace(projectName, @"_(LS|ES)_\d$", string.Empty, RegexOptions.IgnoreCase);
 
-                if (openSessions.Contains(sessionName))
+                if (!string.IsNullOrEmpty(sessionName) && sessions.Any(s => s.Name.Equals(sessionName)))
                 {
                     // Session is already open  
                     _session = _portal?.LocalSessions.FirstOrDefault(s => s.Project.Name == sessionName);
