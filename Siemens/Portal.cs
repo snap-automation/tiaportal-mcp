@@ -467,7 +467,7 @@ namespace TiaMcpServer.Siemens
 
         #region devices
 
-        public string GetStructure()
+        public string GetProjectStructure()
         {
             _logger?.LogInformation("Getting project structure...");
 
@@ -478,13 +478,38 @@ namespace TiaMcpServer.Siemens
 
             StringBuilder sb = new();
 
-            sb.AppendLine($"Project: {_project?.Name}");
+            sb.AppendLine($"{_project?.Name}");
 
-            GetStructureDevices(sb, _project?.Devices, 0);
-
-            GetStructureGroups(sb, _project?.DeviceGroups, 0);
-
-            GetStructureUngroupedDeviceGroup(sb, _project?.UngroupedDevicesGroup, 0);
+            var ancestorStates = new List<bool>();
+            var sections = new List<Action>();
+            
+            if (_project?.Devices != null && _project.Devices.Count > 0)
+            {
+                sections.Add(() => GetProjectStructureDevices(sb, _project.Devices, ancestorStates));
+            }
+            
+            if (_project?.DeviceGroups != null && _project.DeviceGroups.Count > 0)
+            {
+                sections.Add(() => GetProjectStructureGroups(sb, _project.DeviceGroups, ancestorStates));
+            }
+            
+            if (_project?.UngroupedDevicesGroup != null)
+            {
+                sections.Add(() => GetProjectStructureUngroupedDeviceGroup(sb, _project.UngroupedDevicesGroup, ancestorStates));
+            }
+            
+            for (int i = 0; i < sections.Count; i++)
+            {
+                var isLastSection = i == sections.Count - 1;
+                if (i == 0)
+                {
+                    sections[i]();
+                }
+                else
+                {
+                    sections[i]();
+                }
+            }
 
             return sb.ToString();
         }
@@ -1289,130 +1314,212 @@ namespace TiaMcpServer.Siemens
 
         #region  GetStructure ...
 
-        private string IndentText(int n)
+        private string GetTreePrefix(List<bool> ancestorStates, bool isLast)
         {
-            string indention = "  ";
-            return string.Concat(Enumerable.Repeat(indention, n));
+            var prefix = new StringBuilder();
+            
+            // Build prefix based on ancestor states
+            for (int i = 0; i < ancestorStates.Count; i++)
+            {
+                prefix.Append(ancestorStates[i] ? "    " : "│   ");
+            }
+            
+            // Add current level connector
+            prefix.Append(isLast ? "└── " : "├── ");
+            return prefix.ToString();
         }
 
-        private void GetStructureDevices(StringBuilder sb, DeviceComposition? devices, int indent)
+        private void GetProjectStructureDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates)
         {
-            if (devices != null && devices.Count > 0)
+            if (devices.Count == 0) return;
+            
+            // Check if this is the last main section
+            var hasOtherSections = (_project?.DeviceGroups != null && _project.DeviceGroups.Count > 0) ||
+                                  (_project?.UngroupedDevicesGroup != null);
+            var isLastMainSection = !hasOtherSections;
+            
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastMainSection)}Devices [Collection]");
+
+            var deviceList = devices.ToList();
+            var newAncestorStates = new List<bool>(ancestorStates) { isLastMainSection };
+            
+            for (int i = 0; i < deviceList.Count; i++)
             {
-                sb.AppendLine($"{IndentText(indent)}+- Devices[]");
+                var device = deviceList[i];
+                var isLastDevice = i == deviceList.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [PLC Station]");
 
-                foreach (var device in devices)
+                if (device.DeviceItems != null && device.DeviceItems.Count > 0)
                 {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- Device: {device.Name}");
-
-                    if (device.DeviceItems != null && device.DeviceItems.Count > 0)
-                    {
-                        sb.AppendLine($"{IndentText(indent + 2)}+- DeviceItems[]");
-
-                        foreach (var deviceItem in device.DeviceItems)
-                        {
-                            sb.AppendLine($"{IndentText(indent + 3)}+- DeviceItem: {deviceItem.Name}");
-
-                            GetStructureDeviceItemSoftware(sb, deviceItem, indent + 4);
-
-                            GetStructureItems(sb, deviceItem.Items, indent + 4);
-
-                            GetStructureDeviceItems(sb, deviceItem.DeviceItems, indent + 4);
-                        }
-                    }
+                    GetProjectStructureDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(newAncestorStates) { isLastDevice });
                 }
             }
         }
 
-        private void GetStructureGroups(StringBuilder sb, DeviceUserGroupComposition? groups, int indent)
+        private void GetProjectStructureGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
         {
-            if (groups != null && groups.Count > 0)
+            if (groups.Count == 0) return;
+            
+            var isLastMainSection = _project?.UngroupedDevicesGroup == null;
+            
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastMainSection)}Groups [Collection]");
+
+            var groupList = groups.ToList();
+            var newAncestorStates = new List<bool>(ancestorStates) { isLastMainSection };
+            
+            for (int i = 0; i < groupList.Count; i++)
             {
-                sb.AppendLine($"{IndentText(indent)}+- Groups[]");
+                var group = groupList[i];
+                var isLastGroup = i == groupList.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{group.Name} [Group]");
 
-                foreach (var group in groups)
+                var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
+                
+                if (group.Devices != null && group.Devices.Count > 0)
                 {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- Group: {group.Name}");
-
-                    GetStructureDevices(sb, group.Devices, indent + 2);
-
-                    GetStructureGroups(sb, group.Groups, indent + 2);
+                    GetProjectStructureGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
+                }
+                
+                if (group.Groups != null && group.Groups.Count > 0)
+                {
+                    GetProjectStructureSubGroups(sb, group.Groups, groupAncestorStates);
+                }
+            }
+        }
+        
+        private void GetProjectStructureGroupDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates, bool hasSubGroups)
+        {
+            var deviceList = devices.ToList();
+            
+            for (int i = 0; i < deviceList.Count; i++)
+            {
+                var device = deviceList[i];
+                var isLastDevice = i == deviceList.Count - 1 && !hasSubGroups;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastDevice)}{device.Name} [Device]");
+                
+                if (device.DeviceItems != null && device.DeviceItems.Count > 0)
+                {
+                    GetProjectStructureDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(ancestorStates) { isLastDevice });
+                }
+            }
+        }
+        
+        private void GetProjectStructureSubGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
+        {
+            var groupList = groups.ToList();
+            
+            for (int i = 0; i < groupList.Count; i++)
+            {
+                var group = groupList[i];
+                var isLastGroup = i == groupList.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{group.Name} [Subgroup]");
+                
+                var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
+                
+                if (group.Devices != null && group.Devices.Count > 0)
+                {
+                    GetProjectStructureGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
+                }
+                
+                if (group.Groups != null && group.Groups.Count > 0)
+                {
+                    GetProjectStructureSubGroups(sb, group.Groups, groupAncestorStates);
                 }
             }
         }
 
-        private void GetStructureItems(StringBuilder sb, DeviceItemAssociation? items, int indent)
+        private void GetProjectStructureDeviceItemsRecursive(StringBuilder sb, DeviceItemComposition deviceItems, List<bool> ancestorStates)
         {
-            if (items != null && items.Count > 0)
+            var deviceItemsList = deviceItems.ToList();
+            
+            for (int i = 0; i < deviceItemsList.Count; i++)
             {
-                sb.AppendLine($"{IndentText(indent)}+- Items[]");
-
-                foreach (var subItem in items)
+                var deviceItem = deviceItemsList[i];
+                var isLastDeviceItem = i == deviceItemsList.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastDeviceItem)}{deviceItem.Name} [CPU Device]");
+                
+                var itemAncestorStates = new List<bool>(ancestorStates) { isLastDeviceItem };
+                
+                // Get software first
+                GetProjectStructureDeviceItemSoftware(sb, deviceItem, itemAncestorStates);
+                
+                // Then get items
+                if (deviceItem.Items != null && deviceItem.Items.Count > 0)
                 {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- Item: {subItem.Name}");
+                    GetProjectStructureItems(sb, deviceItem.Items, itemAncestorStates, deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
+                }
+                
+                // Finally get sub-device items
+                if (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0)
+                {
+                    GetProjectStructureDeviceItemsRecursive(sb, deviceItem.DeviceItems, itemAncestorStates);
                 }
             }
         }
-
-        private void GetStructureDeviceItems(StringBuilder sb, DeviceItemComposition? deviceItems, int indent)
+        
+        private void GetProjectStructureItems(StringBuilder sb, DeviceItemAssociation items, List<bool> ancestorStates, bool hasSubDeviceItems)
         {
-            if (deviceItems != null && deviceItems.Count > 0)
+            var itemsList = items.ToList();
+            
+            for (int i = 0; i < itemsList.Count; i++)
             {
-                sb.AppendLine($"{IndentText(indent)}+- DeviceItems[]");
-
-                foreach (var deviceItem in deviceItems)
-                {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- DeviceItem: {deviceItem.Name}");
-
-                    GetStructureDeviceItemSoftware(sb, deviceItem, indent + 2);
-
-                    GetStructureItems(sb, deviceItem.Items, indent + 2);
-
-                    GetStructureDeviceItems(sb, deviceItem.DeviceItems, indent + 2);
-
-                }
+                var subItem = itemsList[i];
+                var isLastItem = i == itemsList.Count - 1 && !hasSubDeviceItems;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastItem)}{subItem.Name} [Hardware Component]");
             }
         }
 
-        private void GetStructureDeviceItemSoftware(StringBuilder sb, DeviceItem? deviceItem, int indent)
+
+        private void GetProjectStructureDeviceItemSoftware(StringBuilder sb, DeviceItem deviceItem, List<bool> ancestorStates)
         {
-            // check if it contains plc software
-            if (deviceItem != null)
+            var softwareContainer = deviceItem.GetService<SoftwareContainer>();
+            var hasSoftware = false;
+            
+            if (softwareContainer?.Software is PlcSoftware plcSoftware)
             {
-                // get from DeviceItem
-                var softwareContainer = deviceItem.GetService<SoftwareContainer>();
+                var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
+                                   (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems)}PlcSoftware: {plcSoftware.Name} [PLC Program]");
+                hasSoftware = true;
+            }
 
-                if (softwareContainer?.Software is PlcSoftware plcSoftware)
-                {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- PlcSoftware: {plcSoftware.Name}");
-                }
+            if (softwareContainer?.Software is HmiSoftware hmiSoftware)
+            {
+                var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
+                                   (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems && !hasSoftware)}HmiSoftware: {hmiSoftware.Name} [HMI Program]");
+                hasSoftware = true;
+            }
 
-                if (softwareContainer?.Software is HmiSoftware hmiSoftware)
-                {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- HmiSoftware: {hmiSoftware.Name}");
-                }
-
-                if (softwareContainer?.Software is HmiTarget hmiTarget)
-                {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- HmiSoftware: {hmiTarget.Name}");
-                }
+            if (softwareContainer?.Software is HmiTarget hmiTarget)
+            {
+                var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
+                                   (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems && !hasSoftware)}HmiTarget: {hmiTarget.Name} [HMI Program]");
             }
         }
 
-        private void GetStructureUngroupedDeviceGroup(StringBuilder sb, DeviceSystemGroup? ungroupedDevicesGroup, int indent)
+        private void GetProjectStructureUngroupedDeviceGroup(StringBuilder sb, DeviceSystemGroup ungroupedDevicesGroup, List<bool> ancestorStates)
         {
-            if (ungroupedDevicesGroup != null)
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, true)}UngroupedDevicesGroup: {ungroupedDevicesGroup.Name} [System Group]");
+
+            if (ungroupedDevicesGroup.Devices != null && ungroupedDevicesGroup.Devices.Count > 0)
             {
-                sb.AppendLine($"{IndentText(indent)}+- UngroupedDevicesGroup: {ungroupedDevicesGroup.Name}");
-
-                if (ungroupedDevicesGroup.Devices != null && ungroupedDevicesGroup.Devices.Count > 0)
+                var deviceList = ungroupedDevicesGroup.Devices.ToList();
+                var newAncestorStates = new List<bool>(ancestorStates) { true };
+                
+                for (int i = 0; i < deviceList.Count; i++)
                 {
-                    sb.AppendLine($"{IndentText(indent + 1)}+- Devices[]");
-
-                    foreach (var device in ungroupedDevicesGroup.Devices)
-                    {
-                        sb.AppendLine($"{IndentText(indent + 2)}+- Device: {device.Name}");
-                    }
+                    var device = deviceList[i];
+                    var isLastDevice = i == deviceList.Count - 1;
+                    
+                    sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [Device]");
                 }
             }
         }
