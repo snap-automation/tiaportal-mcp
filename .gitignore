@@ -1,4 +1,7 @@
 .vs/
 .gemini/
+.cursor/
 bin/
 obj/
+gemini.md
+cursor.md
