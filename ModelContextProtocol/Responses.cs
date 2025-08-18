@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Siemens.Engineering;
+using System;
 using System.Collections.Generic;
 using System.Text.Json.Nodes;
 
@@ -60,6 +61,12 @@ namespace TiaMcpServer.ModelContextProtocol
         public string? Description { get; set; }
     }
 
+    public class ResponseProjectInfo : ResponseAttributes
+    {
+        //public string? Path { get; set; }
+        public string? Name { get; set; }
+    }
+
     public class ResponseConnect : ResponseMessage
     {
     }
@@ -75,9 +82,9 @@ namespace TiaMcpServer.ModelContextProtocol
         public string? Session { get; set; }
     }
 
-    public class ResponseOpenProjects : ResponseMessage
+    public class ResponseGetProjects : ResponseMessage
     {
-        public IEnumerable<string>? Items { get; set; }
+        public IEnumerable<ResponseProjectInfo>? Items { get; set; }
     }
 
     public class ResponseOpenProject : ResponseMessage
