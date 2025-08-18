@@ -142,6 +142,14 @@ namespace TiaMcpServer.Siemens
                 {
                     _portal = processes.First().Attach();
 
+                    // checks for existing projects
+                    if (_portal.Projects.Any())
+                    {
+                        _project = _portal.Projects.First();
+                    }
+
+                    //TO DO: check for existing sessions
+
                     return true;
                 }
 
