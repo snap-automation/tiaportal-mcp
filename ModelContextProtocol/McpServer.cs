@@ -50,7 +50,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region portal
 
-        [McpServerTool, Description("Connect to TIA-Portal")]
+        [McpServerTool(Name = "Connect"), Description("Connect to TIA-Portal")]
         public static ResponseConnect Connect()
         {
             Logger?.LogInformation("Connecting to TIA Portal...");
@@ -80,7 +80,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Disconnect from TIA-Portal")]
+        [McpServerTool(Name = "Disconnect"), Description("Disconnect from TIA-Portal")]
         public static ResponseDisconnect Disconnect()
         {
             try
@@ -112,7 +112,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region state
 
-        [McpServerTool, Description("Get the state of the TIA-Portal MCP server")]
+        [McpServerTool(Name = "GetState"), Description("Get the state of the TIA-Portal MCP server")]
         public static ResponseState GetState()
         {
             try
@@ -151,7 +151,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region project/session
 
-        [McpServerTool, Description("Get list of open local projects/sessions")]
+        [McpServerTool(Name = "GetOpenProjects"), Description("Get list of open local projects/sessions")]
         public static ResponseOpenProjects GetOpenProjects()
         {
             try
@@ -177,7 +177,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Open a TIA-Portal local project/session")]
+        [McpServerTool(Name = "OpenProject"), Description("Open a TIA-Portal local project/session")]
         public static ResponseOpenProject OpenProject(
             [Description("path: defines the path where to the project/session")] string path)
         {
@@ -229,7 +229,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Save the current TIA-Portal local project/session")]
+        [McpServerTool(Name = "SaveProject"), Description("Save the current TIA-Portal local project/session")]
         public static ResponseSaveProject SaveProject()
         {
             try
@@ -279,7 +279,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Save current TIA-Portal project/session with a new name")]
+        [McpServerTool(Name = "SaveAsProject"), Description("Save current TIA-Portal project/session with a new name")]
         public static ResponseSaveAsProject SaveAsProject(
             [Description("newProjectPath: defines the new path where to save the project")] string newProjectPath)
         {
@@ -316,7 +316,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Close the current TIA-Portal project/session")]
+        [McpServerTool(Name = "CloseProject"), Description("Close the current TIA-Portal project/session")]
         public static ResponseCloseProject CloseProject()
         {
             try
@@ -375,12 +375,12 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region devices
 
-        [McpServerTool, Description("Get the structure of current local project/session")]
-        public static ResponseStructure GetStructure()
+        [McpServerTool(Name = "GetProjectStructure"), Description("Get the project structure of current local project/session")]
+        public static ResponseStructure GetProjectStructure()
         {
             try
             {
-                var structure = Portal.GetStructure();
+                var structure = Portal.GetProjectStructure();
 
                 if (!string.IsNullOrEmpty(structure))
                 {
@@ -406,7 +406,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Get info from a device from the current project/session")]
+        [McpServerTool(Name = "GetDeviceInfo"), Description("Get info from a device from the current project/session")]
         public static ResponseDeviceInfo GetDeviceInfo(
             [Description("devicePath: defines the path in the project structure to the device")] string devicePath)
         {
@@ -442,7 +442,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Get info from a device item from the current project/session")]
+        [McpServerTool(Name = "GetDeviceItemInfo"), Description("Get info from a device item from the current project/session")]
         public static ResponseDeviceItemInfo GetDeviceItemInfo(
             [Description("deviceItemPath: defines the path in the project structure to the device item")] string deviceItemPath)
         {
@@ -478,7 +478,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Get a list of all devices in the project/session")]
+        [McpServerTool(Name = "GetDevices"), Description("Get a list of all devices in the project/session")]
         public static ResponseDevices GetDevices()
         {
             try
@@ -528,7 +528,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region plc software
 
-        [McpServerTool, Description("Get plc software info")]
+        [McpServerTool(Name = "GetSoftwareInfo"), Description("Get plc software info")]
         public static ResponseSoftwareInfo GetSoftwareInfo(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath)
         {
@@ -564,7 +564,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Compile the plc software")]
+        [McpServerTool(Name = "CompileSoftware"), Description("Compile the plc software")]
         public static ResponseCompileSoftware CompileSoftware(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("password: the password to access adminsitration, default: no password")] string password = "")
@@ -599,7 +599,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region blocks
 
-        [McpServerTool, Description("Get a block info, which is located in the plc software")]
+        [McpServerTool(Name = "GetBlockInfo"), Description("Get a block info, which is located in the plc software")]
         public static ResponseBlockInfo GetBlockInfo(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath)
@@ -643,7 +643,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Get a list of blocks, which are located in plc software")]
+        [McpServerTool(Name = "GetBlocks"), Description("Get a list of blocks, which are located in plc software")]
         public static ResponseBlocks GetBlocks(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "")
@@ -700,7 +700,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Export a block from plc software to file")]
+        [McpServerTool(Name = "ExportBlock"), Description("Export a block from plc software to file")]
         public static ResponseExportBlock ExportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath,
@@ -733,7 +733,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Import a block file to plc software")]
+        [McpServerTool(Name = "ImportBlock"), Description("Import a block file to plc software")]
         public static ResponseImportBlock ImportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("groupPath: defines the path in the project structure to the group, where to import the block")] string groupPath,
@@ -764,7 +764,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Export all blocks from the plc software to path")]
+        [McpServerTool(Name = "ExportBlocks"), Description("Export all blocks from the plc software to path")]
         public static ResponseExportBlocks ExportBlocks(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the blocks")] string exportPath,
@@ -826,7 +826,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region types
 
-        [McpServerTool, Description("Get a type info from the plc software")]
+        [McpServerTool(Name = "GetTypeInfo"), Description("Get a type info from the plc software")]
         public static ResponseTypeInfo GetTypeInfo(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("typePath: defines the path in the project structure to the type")] string typePath)
@@ -867,7 +867,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Get a list of types from the plc software")]
+        [McpServerTool(Name = "GetTypes"), Description("Get a list of types from the plc software")]
         public static ResponseTypes GetTypes(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "")
@@ -921,7 +921,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Export a type from the plc software")]
+        [McpServerTool(Name = "ExportType"), Description("Export a type from the plc software")]
         public static ResponseExportType ExportType(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where export the type")] string exportPath,
@@ -954,7 +954,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Import a type from file into the plc software")]
+        [McpServerTool(Name = "ImportType"), Description("Import a type from file into the plc software")]
         public static ResponseImportType ImportType(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("groupPath: defines the path in the project structure to the group, where to import the type")] string groupPath,
@@ -985,7 +985,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Export types from the plc software to path")]
+        [McpServerTool(Name = "ExportTypes"), Description("Export types from the plc software to path")]
         public static ResponseExportTypes ExportTypes(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the types")] string exportPath,
@@ -1044,7 +1044,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region documents
 
-        [McpServerTool, Description("Export as documents (.s7dcl/.s7res) from a block in the plc software to path")]
+        [McpServerTool(Name = "ExportAsDocuments"), Description("Export as documents (.s7dcl/.s7res) from a block in the plc software to path")]
         public static ResponseExportAsDocuments ExportAsDocuments(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("blockPath: defines the path in the project structure to the block")] string blockPath,
@@ -1076,7 +1076,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
-        [McpServerTool, Description("Export as documents (.s7dcl/.s7res) from a block in the plc software to path")]
+        [McpServerTool(Name = "ExportBlocksAsDocuments"), Description("Export as documents (.s7dcl/.s7res) from blocks in the plc software to path")]
         public static ResponseExportBlocksAsDocuments ExportBlocksAsDocuments(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the documents")] string exportPath,
