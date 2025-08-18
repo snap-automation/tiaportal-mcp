@@ -48,6 +48,10 @@ namespace TiaMcpServer.ModelContextProtocol
         public bool? IsKnowHowProtected { get; set; }
         public string? Description { get; set; }
     }
+    public class ResponseBlocksWithHierarchy : ResponseMessage
+    {
+        public BlockGroupInfo? Root { get; set; }
+    }
 
     public class ResponseTypeInfo : ResponseAttributes
     {
@@ -103,9 +107,9 @@ namespace TiaMcpServer.ModelContextProtocol
     {
     }
 
-    public class ResponseStructure : ResponseMessage
+    public class ResponseTree : ResponseMessage
     {
-        public string? Structure { get; set; }
+        public string? Tree { get; set; }
     }
 
     public class ResponseDevices : ResponseMessage

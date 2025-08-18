@@ -390,19 +390,19 @@ namespace TiaMcpServer.ModelContextProtocol
 
         #region devices
 
-        [McpServerTool(Name = "GetProjectStructure"), Description("Get the project structure of current local project/session")]
-        public static ResponseStructure GetProjectStructure()
+        [McpServerTool(Name = "GetProjectTree"), Description("Get project structure as a tree view on current local project/session")]
+        public static ResponseTree GetProjectTree()
         {
             try
             {
-                var structure = Portal.GetProjectStructure();
+                var tree = Portal.GetProjectTree();
 
-                if (!string.IsNullOrEmpty(structure))
+                if (!string.IsNullOrEmpty(tree))
                 {
-                    return new ResponseStructure
+                    return new ResponseTree
                     {
-                        Message = "Project structure retrieved",
-                        Structure = "```\n" + structure + "\n```",
+                        Message = "Project tree retrieved",
+                        Tree = "```\n" + tree + "\n```",
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
@@ -412,12 +412,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, "Failed retrieving project structure");
+                    throw new McpException(-32000, "Failed retrieving project tree");
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving project structure: {ex.Message}", ex);
+                throw new McpException(-32000, $"Failed retrieving project tree: {ex.Message}", ex);
             }
         }
 
@@ -714,6 +714,40 @@ namespace TiaMcpServer.ModelContextProtocol
                 throw new McpException(-32000, $"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}: {ex.Message}", ex);
             }
         }
+
+        [McpServerTool(Name = "GetBlocksWithHierarchy"), Description("Get a list of all blocks with their group hierarchy from the plc software.")]
+        public static ResponseBlocksWithHierarchy GetBlocksWithHierarchy(
+        [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath)
+        {
+            try
+            {
+                var rootGroup = Portal.GetBlockRootGroup(softwarePath);
+                if (rootGroup != null)
+                {
+                    var hierarchy = Helper.BuildBlockHierarchy(rootGroup);
+                    return new ResponseBlocksWithHierarchy
+                    {
+                        Message = $"Block hierarchy retrieved from '{softwarePath}'",
+                        Root = hierarchy,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
+                }
+                else
+                {
+                    throw new McpException(-32000, $"Failed retrieving block hierarchy from '{softwarePath}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new McpException(-32000, $"Failed retrieving block hierarchy from '{softwarePath}': {ex.Message}", ex);
+            }
+        }
+
+
 
         [McpServerTool(Name = "ExportBlock"), Description("Export a block from plc software to file")]
         public static ResponseExportBlock ExportBlock(
