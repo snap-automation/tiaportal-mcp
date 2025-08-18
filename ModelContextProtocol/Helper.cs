@@ -9,15 +9,19 @@ namespace TiaMcpServer.ModelContextProtocol
         public static List<Attribute> GetAttributeList(IEngineeringObject obj)
         {
             var attributes = new List<Attribute>();
-            foreach (var attr in obj.GetAttributeInfos())
+
+            if (obj != null)
             {
-                object value = obj.GetAttribute(attr.Name);
-                attributes.Add(new Attribute
+                foreach (var attr in obj.GetAttributeInfos())
                 {
-                    Name = attr.Name,
-                    Value = value,
-                    AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
-                });
+                    object value = obj.GetAttribute(attr.Name);
+                    attributes.Add(new Attribute
+                    {
+                        Name = attr.Name,
+                        Value = value,
+                        AccessMode = Enum.GetName(typeof(EngineeringAttributeAccessMode), attr.AccessMode)
+                    });
+                }
             }
 
             return attributes;

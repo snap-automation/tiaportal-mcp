@@ -3,6 +3,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Threading.Tasks;
+using System.Xml;
 using TiaMcpServer.ModelContextProtocol;
 using TiaMcpServer.Siemens;
 
@@ -17,7 +18,14 @@ namespace TiaMcpServer
 
             options.Logging = 1;
 
-            Openness.Initialize(options.TiaMajorVersion);
+            if (options.TiaMajorVersion<20)
+            {
+                AppDomain.CurrentDomain.AssemblyResolve += Engineering.Resolver;
+            }
+            else
+            {
+                Openness.Initialize(options.TiaMajorVersion);
+            }
 
             // Ensure user is in user group 'Siemens TIA Openness'
             if (await Openness.IsUserInGroup())

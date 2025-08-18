@@ -1,44 +1,93 @@
 ﻿using Microsoft.Win32;
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
 
 namespace TiaMcpServer.Siemens
 {
-    // manual Siemens.Engineering.dll resolve not used.
+    // Manual Siemens.Engineering.dll resolve
     public class Engineering
     {
-        public static Assembly? Resolve(object sender, ResolveEventArgs args)
+        public static int TiaMajorVersion { get; private set; }
+
+        public static Assembly? Resolver(object sender, ResolveEventArgs args)
         {
-            string siemensEngineeringDllName = "Siemens.Engineering";
-            string subKeyName = @"SOFTWARE\Siemens\Automation\Openness";
-
             var assemblyName = new AssemblyName(args.Name);
-
-            if (!assemblyName.Name.StartsWith(siemensEngineeringDllName))
+            if (!assemblyName.Name.StartsWith("Siemens.Engineering"))
+            {
                 return null;
+            }
 
-            using var regBaseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64);
+            var tiaInstallPath = GetTiaPortalInstallPath();
+            if (string.IsNullOrEmpty(tiaInstallPath))
+            {
+                throw new InvalidOperationException($"Could not find TIA Portal installation path for version {TiaMajorVersion} in the registry.");
+            }
 
-            using var opennessBaseKey = regBaseKey.OpenSubKey(subKeyName);
+            var majorVersionString = TiaMajorVersion.ToString();
+            var searchDirectories = new[]
+            {
+                Path.Combine(tiaInstallPath, "PublicAPI", $"V{majorVersionString}"),
+                Path.Combine(tiaInstallPath, "Bin", "PublicAPI")
+            };
 
-            using var registryKeyLatestTiaVersion = opennessBaseKey?.OpenSubKey(opennessBaseKey.GetSubKeyNames().Last());
+            var versionsToIgnore = new[] { "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20" }
+                                    .Where(v => v != $"V{majorVersionString}");
 
-            var requestedVersionOfAssembly = assemblyName.Version.ToString();
+            foreach (var dir in searchDirectories)
+            {
+                var assemblyPath = FindAssemblyRecursive(dir, assemblyName.Name + ".dll", versionsToIgnore);
+                if (assemblyPath != null)
+                {
+                    return Assembly.LoadFrom(assemblyPath);
+                }
+            }
 
-            using var assemblyVersionSubKey = registryKeyLatestTiaVersion
-                                             ?.OpenSubKey("PublicAPI")
-                                             ?.OpenSubKey(requestedVersionOfAssembly);
+            throw new FileNotFoundException($"Could not find DLL '{assemblyName.Name}' for TIA Portal version {TiaMajorVersion} in the installation directories.");
+        }
 
-            var siemensEngineeringAssemblyPath = assemblyVersionSubKey?.GetValue(siemensEngineeringDllName).ToString();
+        private static string? GetTiaPortalInstallPath()
+        {
+            var subKeyName = $@"SOFTWARE\Siemens\Automation\_InstalledSW\TIAP{TiaMajorVersion}\TIA_Opns";
 
-            if (siemensEngineeringAssemblyPath == null || !File.Exists(siemensEngineeringAssemblyPath))
+            using (var regBaseKey = RegistryKey.OpenBaseKey(RegistryHive.LocalMachine, RegistryView.Registry64))
+            using (var tiaOpnsKey = regBaseKey.OpenSubKey(subKeyName))
+            {
+                return tiaOpnsKey?.GetValue("Path")?.ToString();
+            }
+        }
+
+        private static string? FindAssemblyRecursive(string directory, string fileName, IEnumerable<string> excludedDirectories)
+        {
+            if (!Directory.Exists(directory))
+            {
                 return null;
+            }
 
-            var assembly = Assembly.LoadFrom(siemensEngineeringAssemblyPath);
+            var filePath = Path.Combine(directory, fileName);
+            if (File.Exists(filePath))
+            {
+                return filePath;
+            }
 
-            return assembly;
+            foreach (var subDir in Directory.GetDirectories(directory))
+            {
+                var subDirName = new DirectoryInfo(subDir).Name;
+                if (excludedDirectories.Contains(subDirName))
+                {
+                    continue;
+                }
+
+                var result = FindAssemblyRecursive(subDir, fileName, excludedDirectories);
+                if (result != null)
+                {
+                    return result;
+                }
+            }
+
+            return null;
         }
     }
 }
