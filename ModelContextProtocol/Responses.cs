@@ -96,9 +96,9 @@ namespace TiaMcpServer.ModelContextProtocol
     {
     }
 
-    public class ResponseStructure : ResponseMessage
+    public class ResponseTree : ResponseMessage
     {
-        public string? Structure { get; set; }
+        public string? Tree { get; set; }
     }
 
     public class ResponseDevices : ResponseMessage

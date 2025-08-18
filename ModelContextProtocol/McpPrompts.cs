@@ -36,12 +36,12 @@ Use the close_project tool to close the current project.";
 
         #region Project Information Templates
 
-        [McpServerPrompt(Name = "GetProjectStructure"), Description("Get the project structure of the current TIA Portal project")]
-        public static string GetProjectStructure()
+        [McpServerPrompt(Name = "GetProjectTree"), Description("Get the project structure as tree view on the current TIA Portal project")]
+        public static string GetProjectTree()
         {
             return @"Retrieve the complete structure of the current TIA Portal project.
 This will show all devices, device items, groups, and PLC/HMI software in a hierarchical format.
-Use the get_project_structure tool to display the project organization and locate software paths for other operations.";
+Use the GetProjectTree tool to display the project organization and locate software paths for other operations.";
         }
 
         #endregion

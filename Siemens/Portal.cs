@@ -467,9 +467,9 @@ namespace TiaMcpServer.Siemens
 
         #region devices
 
-        public string GetProjectStructure()
+        public string GetProjectTree()
         {
-            _logger?.LogInformation("Getting project structure...");
+            _logger?.LogInformation("Getting project tree...");
 
             if (IsProjectNull())
             {
@@ -485,17 +485,17 @@ namespace TiaMcpServer.Siemens
             
             if (_project?.Devices != null && _project.Devices.Count > 0)
             {
-                sections.Add(() => GetProjectStructureDevices(sb, _project.Devices, ancestorStates));
+                sections.Add(() => GetProjectTreeDevices(sb, _project.Devices, ancestorStates));
             }
             
             if (_project?.DeviceGroups != null && _project.DeviceGroups.Count > 0)
             {
-                sections.Add(() => GetProjectStructureGroups(sb, _project.DeviceGroups, ancestorStates));
+                sections.Add(() => GetProjectTreeGroups(sb, _project.DeviceGroups, ancestorStates));
             }
             
             if (_project?.UngroupedDevicesGroup != null)
             {
-                sections.Add(() => GetProjectStructureUngroupedDeviceGroup(sb, _project.UngroupedDevicesGroup, ancestorStates));
+                sections.Add(() => GetProjectTreeUngroupedDeviceGroup(sb, _project.UngroupedDevicesGroup, ancestorStates));
             }
             
             for (int i = 0; i < sections.Count; i++)
@@ -1312,7 +1312,7 @@ namespace TiaMcpServer.Siemens
             return false;
         }
 
-        #region  GetStructure ...
+        #region  GetTree ...
 
         private string GetTreePrefix(List<bool> ancestorStates, bool isLast)
         {
@@ -1329,7 +1329,7 @@ namespace TiaMcpServer.Siemens
             return prefix.ToString();
         }
 
-        private void GetProjectStructureDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates)
+        private void GetProjectTreeDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates)
         {
             if (devices.Count == 0) return;
             
@@ -1348,16 +1348,16 @@ namespace TiaMcpServer.Siemens
                 var device = deviceList[i];
                 var isLastDevice = i == deviceList.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [PLC Station]");
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [Device: {device.TypeIdentifier}]");
 
                 if (device.DeviceItems != null && device.DeviceItems.Count > 0)
                 {
-                    GetProjectStructureDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(newAncestorStates) { isLastDevice });
+                    GetProjectTreeDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(newAncestorStates) { isLastDevice });
                 }
             }
         }
 
-        private void GetProjectStructureGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
+        private void GetProjectTreeGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
         {
             if (groups.Count == 0) return;
             
@@ -1379,17 +1379,17 @@ namespace TiaMcpServer.Siemens
                 
                 if (group.Devices != null && group.Devices.Count > 0)
                 {
-                    GetProjectStructureGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
+                    GetProjectTreeGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
                 }
                 
                 if (group.Groups != null && group.Groups.Count > 0)
                 {
-                    GetProjectStructureSubGroups(sb, group.Groups, groupAncestorStates);
+                    GetProjectTreeSubGroups(sb, group.Groups, groupAncestorStates);
                 }
             }
         }
         
-        private void GetProjectStructureGroupDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates, bool hasSubGroups)
+        private void GetProjectTreeGroupDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates, bool hasSubGroups)
         {
             var deviceList = devices.ToList();
             
@@ -1402,12 +1402,12 @@ namespace TiaMcpServer.Siemens
                 
                 if (device.DeviceItems != null && device.DeviceItems.Count > 0)
                 {
-                    GetProjectStructureDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(ancestorStates) { isLastDevice });
+                    GetProjectTreeDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(ancestorStates) { isLastDevice });
                 }
             }
         }
         
-        private void GetProjectStructureSubGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
+        private void GetProjectTreeSubGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
         {
             var groupList = groups.ToList();
             
@@ -1422,17 +1422,17 @@ namespace TiaMcpServer.Siemens
                 
                 if (group.Devices != null && group.Devices.Count > 0)
                 {
-                    GetProjectStructureGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
+                    GetProjectTreeGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
                 }
                 
                 if (group.Groups != null && group.Groups.Count > 0)
                 {
-                    GetProjectStructureSubGroups(sb, group.Groups, groupAncestorStates);
+                    GetProjectTreeSubGroups(sb, group.Groups, groupAncestorStates);
                 }
             }
         }
 
-        private void GetProjectStructureDeviceItemsRecursive(StringBuilder sb, DeviceItemComposition deviceItems, List<bool> ancestorStates)
+        private void GetProjectTreeDeviceItemsRecursive(StringBuilder sb, DeviceItemComposition deviceItems, List<bool> ancestorStates)
         {
             var deviceItemsList = deviceItems.ToList();
             
@@ -1441,28 +1441,28 @@ namespace TiaMcpServer.Siemens
                 var deviceItem = deviceItemsList[i];
                 var isLastDeviceItem = i == deviceItemsList.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastDeviceItem)}{deviceItem.Name} [CPU Device]");
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastDeviceItem)}{deviceItem.Name} [DeviceItem]");
                 
                 var itemAncestorStates = new List<bool>(ancestorStates) { isLastDeviceItem };
                 
                 // Get software first
-                GetProjectStructureDeviceItemSoftware(sb, deviceItem, itemAncestorStates);
+                GetProjectTreeDeviceItemSoftware(sb, deviceItem, itemAncestorStates);
                 
                 // Then get items
                 if (deviceItem.Items != null && deviceItem.Items.Count > 0)
                 {
-                    GetProjectStructureItems(sb, deviceItem.Items, itemAncestorStates, deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
+                    GetProjectTreeItems(sb, deviceItem.Items, itemAncestorStates, deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
                 }
                 
                 // Finally get sub-device items
                 if (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0)
                 {
-                    GetProjectStructureDeviceItemsRecursive(sb, deviceItem.DeviceItems, itemAncestorStates);
+                    GetProjectTreeDeviceItemsRecursive(sb, deviceItem.DeviceItems, itemAncestorStates);
                 }
             }
         }
         
-        private void GetProjectStructureItems(StringBuilder sb, DeviceItemAssociation items, List<bool> ancestorStates, bool hasSubDeviceItems)
+        private void GetProjectTreeItems(StringBuilder sb, DeviceItemAssociation items, List<bool> ancestorStates, bool hasSubDeviceItems)
         {
             var itemsList = items.ToList();
             
@@ -1476,7 +1476,7 @@ namespace TiaMcpServer.Siemens
         }
 
 
-        private void GetProjectStructureDeviceItemSoftware(StringBuilder sb, DeviceItem deviceItem, List<bool> ancestorStates)
+        private void GetProjectTreeDeviceItemSoftware(StringBuilder sb, DeviceItem deviceItem, List<bool> ancestorStates)
         {
             var softwareContainer = deviceItem.GetService<SoftwareContainer>();
             var hasSoftware = false;
@@ -1505,7 +1505,7 @@ namespace TiaMcpServer.Siemens
             }
         }
 
-        private void GetProjectStructureUngroupedDeviceGroup(StringBuilder sb, DeviceSystemGroup ungroupedDevicesGroup, List<bool> ancestorStates)
+        private void GetProjectTreeUngroupedDeviceGroup(StringBuilder sb, DeviceSystemGroup ungroupedDevicesGroup, List<bool> ancestorStates)
         {
             sb.AppendLine($"{GetTreePrefix(ancestorStates, true)}UngroupedDevicesGroup: {ungroupedDevicesGroup.Name} [System Group]");
 
@@ -1519,7 +1519,7 @@ namespace TiaMcpServer.Siemens
                     var device = deviceList[i];
                     var isLastDevice = i == deviceList.Count - 1;
                     
-                    sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [Device]");
+                    sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [{device.TypeIdentifier}]");
                 }
             }
         }
