@@ -391,7 +391,7 @@ namespace TiaMcpServer.ModelContextProtocol
         #region devices
 
         [McpServerTool(Name = "GetProjectTree"), Description("Get project structure as a tree view on current local project/session")]
-        public static ResponseTree GetProjectTree()
+        public static ResponseProjectTree GetProjectTree()
         {
             try
             {
@@ -399,7 +399,7 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 if (!string.IsNullOrEmpty(tree))
                 {
-                    return new ResponseTree
+                    return new ResponseProjectTree
                     {
                         Message = "Project tree retrieved",
                         Tree = "```\n" + tree + "\n```",
@@ -607,6 +607,38 @@ namespace TiaMcpServer.ModelContextProtocol
             catch (Exception ex) when (ex is not McpException)
             {
                 throw new McpException(-32000, $"Failed compiling software '{softwarePath}': {ex.Message}", ex);
+            }
+        }
+
+        [McpServerTool(Name = "GetSoftwareTree"), Description("Get the structure/tree of a given PLC software showing blocks, types, and external sources")]
+        public static ResponseSoftwareTree GetSoftwareTree(
+            [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath)
+        {
+            try
+            {
+                var tree = Portal.GetSoftwareTree(softwarePath);
+
+                if (!string.IsNullOrEmpty(tree))
+                {
+                    return new ResponseSoftwareTree
+                    {
+                        Message = $"Software tree retrieved from '{softwarePath}'",
+                        Tree = "```\n" + tree + "\n```",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
+                }
+                else
+                {
+                    throw new McpException(-32000, $"Failed retrieving software tree from '{softwarePath}'");
+                }
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException(-32000, $"Failed retrieving software tree from '{softwarePath}': {ex.Message}", ex);
             }
         }
 

@@ -112,6 +112,16 @@ namespace TiaMcpServer.ModelContextProtocol
         public string? Tree { get; set; }
     }
 
+    public class ResponseProjectTree : ResponseMessage
+    {
+        public string? Tree { get; set; }
+    }
+
+    public class ResponseSoftwareTree : ResponseMessage
+    {
+        public string? Tree { get; set; }
+    }
+
     public class ResponseDevices : ResponseMessage
     {
         public IEnumerable<ResponseDeviceInfo>? Items { get; set; }

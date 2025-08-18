@@ -44,6 +44,26 @@ This will show all devices, device items, groups, and PLC/HMI software in a hier
 Use the GetProjectTree tool to display the project organization and locate software paths for other operations.";
         }
 
+        [McpServerPrompt(Name = "GetSoftwareTree"), Description("Get the structure/tree of a specific PLC software showing blocks and types")]
+        public static string GetSoftwareTree(string softwarePath)
+        {
+            return $@"Retrieve the complete structure of PLC software at: {softwarePath}
+This will show all program blocks, user-defined data types, and their group hierarchy in a tree format.
+
+Common software paths:
+- PLC_1: For hardware PLC software
+- PC-System_1/Software PLC_1: For PC based PLC software
+- Check project structure first using GetProjectTree to find the correct software path
+
+The tree will display:
+- Program blocks (organized by groups and subgroups)
+- User-defined data types (organized by groups and subgroups)
+- Block types (FB, FC, DB, etc.) and programming languages
+- Hierarchical organization with proper tree formatting
+
+Use the GetSoftwareTree tool with the software path parameter to explore the internal structure of PLC software.";
+        }
+
         #endregion
 
         #region Export Templates

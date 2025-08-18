@@ -1556,6 +1556,185 @@ namespace TiaMcpServer.Siemens
 
         #endregion
 
+        #region GetSoftwareTree ...
+
+        public string GetSoftwareTree(string softwarePath)
+        {
+            _logger?.LogInformation("Getting software tree for path: {SoftwarePath}", softwarePath);
+
+            if (IsProjectNull())
+            {
+                return string.Empty;
+            }
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    StringBuilder sb = new();
+                    sb.AppendLine($"{plcSoftware.Name} [PLC Software]");
+                    
+                    var ancestorStates = new List<bool>();
+                    var sections = new List<Action>();
+                    
+                    var hasBlocks = plcSoftware.BlockGroup != null;
+                    var hasTypes = plcSoftware.TypeGroup != null;
+                    
+                    // Add blocks section
+                    if (hasBlocks)
+                    {
+                        sections.Add(() => GetSoftwareTreeBlockGroup(sb, plcSoftware.BlockGroup, ancestorStates, "Program blocks", !hasTypes));
+                    }
+                    
+                    // Add types section
+                    if (hasTypes)
+                    {
+                        sections.Add(() => GetSoftwareTreeTypeGroup(sb, plcSoftware.TypeGroup, ancestorStates, "User-defined data types", true));
+                    }
+                    
+                    
+                    // Execute sections
+                    for (int i = 0; i < sections.Count; i++)
+                    {
+                        sections[i]();
+                    }
+
+                    return sb.ToString();
+                }
+                else
+                {
+                    return $"No PLC software found at path: {softwarePath}";
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error getting software tree for {SoftwarePath}", softwarePath);
+                return $"Error retrieving software tree: {ex.Message}";
+            }
+        }
+        
+        private void GetSoftwareTreeBlockGroup(StringBuilder sb, PlcBlockGroup blockGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
+        {
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel} [Collection]");
+            var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
+            
+            // Get blocks in this group
+            var blocks = blockGroup.Blocks.ToList();
+            var subGroups = blockGroup.Groups.ToList();
+            
+            // First, add all blocks
+            for (int i = 0; i < blocks.Count; i++)
+            {
+                var block = blocks[i];
+                var isLastBlock = i == blocks.Count - 1 && subGroups.Count == 0;
+                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
+            }
+            
+            // Then, add all subgroups recursively
+            for (int i = 0; i < subGroups.Count; i++)
+            {
+                var subGroup = subGroups[i];
+                var isLastGroup = i == subGroups.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name} [Block Group]");
+                
+                var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
+                GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
+            }
+        }
+        
+        private void GetSoftwareTreeBlockGroupRecursive(StringBuilder sb, PlcBlockGroup blockGroup, List<bool> ancestorStates)
+        {
+            // Get blocks in this group
+            var blocks = blockGroup.Blocks.ToList();
+            var subGroups = blockGroup.Groups.ToList();
+            
+            // First, add all blocks
+            for (int i = 0; i < blocks.Count; i++)
+            {
+                var block = blocks[i];
+                var isLastBlock = i == blocks.Count - 1 && subGroups.Count == 0;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
+            }
+            
+            // Then, add all subgroups recursively
+            for (int i = 0; i < subGroups.Count; i++)
+            {
+                var subGroup = subGroups[i];
+                var isLastGroup = i == subGroups.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name} [Block Group]");
+                
+                var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
+                GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
+            }
+        }
+        
+        private void GetSoftwareTreeTypeGroup(StringBuilder sb, PlcTypeGroup typeGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
+        {
+            
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel} [Collection]");
+            var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
+            
+            // Get types in this group
+            var types = typeGroup.Types.ToList();
+            var subGroups = typeGroup.Groups.ToList();
+            
+            // First, add all types
+            for (int i = 0; i < types.Count; i++)
+            {
+                var type = types[i];
+                var isLastType = i == types.Count - 1 && subGroups.Count == 0;
+                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
+            }
+            
+            // Then, add all subgroups recursively
+            for (int i = 0; i < subGroups.Count; i++)
+            {
+                var subGroup = subGroups[i];
+                var isLastGroup = i == subGroups.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name} [Type Group]");
+                
+                var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
+                GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
+            }
+        }
+        
+        private void GetSoftwareTreeTypeGroupRecursive(StringBuilder sb, PlcTypeGroup typeGroup, List<bool> ancestorStates)
+        {
+            // Get types in this group
+            var types = typeGroup.Types.ToList();
+            var subGroups = typeGroup.Groups.ToList();
+            
+            // First, add all types
+            for (int i = 0; i < types.Count; i++)
+            {
+                var type = types[i];
+                var isLastType = i == types.Count - 1 && subGroups.Count == 0;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
+            }
+            
+            // Then, add all subgroups recursively
+            for (int i = 0; i < subGroups.Count; i++)
+            {
+                var subGroup = subGroups[i];
+                var isLastGroup = i == subGroups.Count - 1;
+                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name} [Type Group]");
+                
+                var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
+                GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
+            }
+        }
+
+        #endregion
+
         #region GetSoftwareContainer ...
 
         private SoftwareContainer? GetSoftwareContainer(string softwarePath)
