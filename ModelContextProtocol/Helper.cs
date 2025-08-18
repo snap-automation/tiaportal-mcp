@@ -5,7 +5,7 @@ using System.Collections.Generic;
 
 namespace TiaMcpServer.ModelContextProtocol
 {
-    internal class Helper
+    public class Helper
     {
         public static List<Attribute> GetAttributeList(IEngineeringObject obj)
         {

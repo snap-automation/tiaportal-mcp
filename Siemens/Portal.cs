@@ -1627,7 +1627,8 @@ namespace TiaMcpServer.Siemens
             for (int i = 0; i < blocks.Count; i++)
             {
                 var block = blocks[i];
-                var isLastBlock = i == blocks.Count - 1 && subGroups.Count == 0;
+                // Block is last only if it's the last block AND there are no subgroups following
+                var isLastBlock = (i == blocks.Count - 1) && (subGroups.Count == 0);
                 
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
             }
@@ -1655,7 +1656,8 @@ namespace TiaMcpServer.Siemens
             for (int i = 0; i < blocks.Count; i++)
             {
                 var block = blocks[i];
-                var isLastBlock = i == blocks.Count - 1 && subGroups.Count == 0;
+                // Block is last only if it's the last block AND there are no subgroups following
+                var isLastBlock = (i == blocks.Count - 1) && (subGroups.Count == 0);
                 
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
             }
@@ -1687,7 +1689,8 @@ namespace TiaMcpServer.Siemens
             for (int i = 0; i < types.Count; i++)
             {
                 var type = types[i];
-                var isLastType = i == types.Count - 1 && subGroups.Count == 0;
+                // Type is last only if it's the last type AND there are no subgroups following
+                var isLastType = (i == types.Count - 1) && (subGroups.Count == 0);
                 
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
             }
@@ -1715,7 +1718,8 @@ namespace TiaMcpServer.Siemens
             for (int i = 0; i < types.Count; i++)
             {
                 var type = types[i];
-                var isLastType = i == types.Count - 1 && subGroups.Count == 0;
+                // Type is last only if it's the last type AND there are no subgroups following
+                var isLastType = (i == types.Count - 1) && (subGroups.Count == 0);
                 
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
             }
