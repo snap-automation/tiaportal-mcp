@@ -700,6 +700,40 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
+        [McpServerTool(Name = "GetBlocksWithHierarchy"), Description("Get a list of all blocks with their group hierarchy from the plc software.")]
+        public static ResponseBlocksWithHierarchy GetBlocksWithHierarchy(
+        [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath)
+        {
+            try
+            {
+                var rootGroup = Portal.GetBlockRootGroup(softwarePath);
+                if (rootGroup != null)
+                {
+                    var hierarchy = Helper.BuildBlockHierarchy(rootGroup);
+                    return new ResponseBlocksWithHierarchy
+                    {
+                        Message = $"Block hierarchy retrieved from '{softwarePath}'",
+                        Root = hierarchy,
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true
+                        }
+                    };
+                }
+                else
+                {
+                    throw new McpException(-32000, $"Failed retrieving block hierarchy from '{softwarePath}'");
+                }
+            }
+            catch (Exception ex)
+            {
+                throw new McpException(-32000, $"Failed retrieving block hierarchy from '{softwarePath}': {ex.Message}", ex);
+            }
+        }
+
+
+
         [McpServerTool(Name = "ExportBlock"), Description("Export a block from plc software to file")]
         public static ResponseExportBlock ExportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,

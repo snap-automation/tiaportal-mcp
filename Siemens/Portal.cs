@@ -786,6 +786,31 @@ namespace TiaMcpServer.Siemens
             return list;
         }
 
+        public PlcBlockGroup? GetBlockRootGroup(string softwarePath)
+        {
+            _logger?.LogInformation("Getting block root group...");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    return plcSoftware.BlockGroup;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error getting block root group");
+            }
+
+            return null;
+        }
+
         public List<PlcType> GetTypes(string softwarePath, string regexName = "")
         {
             _logger?.LogInformation("Getting types...");
