@@ -148,7 +148,12 @@ namespace TiaMcpServer.Siemens
                         _project = _portal.Projects.First();
                     }
 
-                    //TO DO: check for existing sessions
+                    // check for existing local sessions
+                    if (_portal.LocalSessions.Any())
+                    {
+                        _session = _portal.LocalSessions.First();
+                        _project = _session.Project;
+                    }
 
                     return true;
                 }
