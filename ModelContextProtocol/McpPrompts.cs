@@ -32,15 +32,22 @@ This will close the active project and return TIA Portal to the main screen.
 Use the close_project tool to close the current project.";
         }
 
+        [McpServerPrompt(Name = "DisconnectFromPortal"), Description("Disconnect from TIA Portal")]
+        public static string DisconnectFromPortal()
+        {
+            return @"Disconnect from TIA Portal using the MCP server.
+This will remove the connection to running TIA Portal instance.";
+        }
+
         #endregion
 
         #region Project Information Templates
 
-        [McpServerPrompt(Name = "GetProjectTree"), Description("Get the project structure as tree view on the current TIA Portal project")]
+        [McpServerPrompt(Name = "GetProjectTree"), Description("Get the project structure/tree on the current TIA Portal project")]
         public static string GetProjectTree()
         {
             return @"Retrieve the complete structure of the current TIA Portal project.
-This will show all devices, device items, groups, and PLC/HMI software in a hierarchical format.
+This will show all devices, device items, groups, and PLC/HMI software in a hierarchical tree format.
 Use the GetProjectTree tool to display the project organization and locate software paths for other operations.";
         }
 
@@ -48,20 +55,19 @@ Use the GetProjectTree tool to display the project organization and locate softw
         public static string GetSoftwareTree(string softwarePath)
         {
             return $@"Retrieve the complete structure of PLC software at: {softwarePath}
-This will show all program blocks, user-defined data types, and their group hierarchy in a tree format.
+This will show all function and data blocks, user-defined data types, and their group hierarchy in a tree format.
 
-Common software paths:
+Examples for 'softwarePath' parameter:
 - PLC_1: For hardware PLC software
 - PC-System_1/Software PLC_1: For PC based PLC software
 - Check project structure first using GetProjectTree to find the correct software path
 
 The tree will display:
-- Program blocks (organized by groups and subgroups)
+- Function (OB, FB, FC) and data (ArrayDB, GlobalDB, InstanceDB) blocks (organized by groups and subgroups)
 - User-defined data types (organized by groups and subgroups)
-- Block types (FB, FC, DB, etc.) and programming languages
 - Hierarchical organization with proper tree formatting
 
-Use the GetSoftwareTree tool with the software path parameter to explore the internal structure of PLC software.";
+Use the GetSoftwareTree tool with the 'softwarePath' parameter to explore the internal structure of PLC software.";
         }
 
         #endregion
