@@ -45,7 +45,7 @@ namespace TiaMcpServer
             var builder = Host.CreateEmptyApplicationBuilder(settings: null);
             if (builder != null)
             {
-                if (options != null && options.Logging!= null)
+                if (options != null && options.Logging != null)
                 {
                     switch (options.Logging)
                     {
@@ -70,7 +70,7 @@ namespace TiaMcpServer
 
                         case 3:
                             // Windows Event Log
-                            builder.Logging.AddEventLog();   
+                            builder.Logging.AddEventLog();
                             break;
 
                         default:

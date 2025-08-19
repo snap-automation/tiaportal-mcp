@@ -26,19 +26,20 @@ namespace TiaMcpServer.Siemens
                 throw new InvalidOperationException($"Could not find TIA Portal installation path for version {TiaMajorVersion} in the registry.");
             }
 
-            var majorVersionString = TiaMajorVersion.ToString();
+            var tiaMajorVersionString = TiaMajorVersion.ToString();
             var searchDirectories = new[]
             {
-                Path.Combine(tiaInstallPath, "PublicAPI", $"V{majorVersionString}"),
+                Path.Combine(tiaInstallPath, "PublicAPI", $"V{tiaMajorVersionString}"),
                 Path.Combine(tiaInstallPath, "Bin", "PublicAPI")
             };
 
-            var versionsToIgnore = new[] { "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20" }
-                                    .Where(v => v != $"V{majorVersionString}");
+            // IEnumerable without given majorVersionString
+            var excludedTiaMajorVersions = new[] { "V13", "V14", "V15", "V16", "V17", "V18", "V19", "V20" }
+                                    .Where(v => v != $"V{tiaMajorVersionString}");
 
             foreach (var dir in searchDirectories)
             {
-                var assemblyPath = FindAssemblyRecursive(dir, assemblyName.Name + ".dll", versionsToIgnore);
+                var assemblyPath = FindAssemblyRecursive(dir, assemblyName.Name + ".dll", excludedTiaMajorVersions);
                 if (assemblyPath != null)
                 {
                     return Assembly.LoadFrom(assemblyPath);
@@ -59,7 +60,7 @@ namespace TiaMcpServer.Siemens
             }
         }
 
-        private static string? FindAssemblyRecursive(string directory, string fileName, IEnumerable<string> excludedDirectories)
+        private static string? FindAssemblyRecursive(string directory, string fileName, IEnumerable<string> excludedTiaMajorVersions)
         {
             if (!Directory.Exists(directory))
             {
@@ -75,12 +76,12 @@ namespace TiaMcpServer.Siemens
             foreach (var subDir in Directory.GetDirectories(directory))
             {
                 var subDirName = new DirectoryInfo(subDir).Name;
-                if (excludedDirectories.Contains(subDirName))
+                if (excludedTiaMajorVersions.Contains(subDirName))
                 {
                     continue;
                 }
 
-                var result = FindAssemblyRecursive(subDir, fileName, excludedDirectories);
+                var result = FindAssemblyRecursive(subDir, fileName, excludedTiaMajorVersions);
                 if (result != null)
                 {
                     return result;
