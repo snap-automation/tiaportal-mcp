@@ -28,4 +28,8 @@
       <Private>False</Private>
     </Reference>
   </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="tests\**" />
+    <None Include="tests\**" />
+  </ItemGroup>
 </Project>

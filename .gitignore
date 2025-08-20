@@ -5,3 +5,7 @@ bin/
 obj/
 gemini.md
 cursor.md
+tests/TiaMcpServer.Test/bin/
+tests/TiaMcpServer.Test/obj/
+tests/TIA_V20_TEST_PROJECT/
+TestResults
