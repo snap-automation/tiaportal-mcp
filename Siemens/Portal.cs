@@ -1511,6 +1511,7 @@ namespace TiaMcpServer.Siemens
             var softwareContainer = deviceItem.GetService<SoftwareContainer>();
             var hasSoftware = false;
             
+            //PLC software
             if (softwareContainer?.Software is PlcSoftware plcSoftware)
             {
                 var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
@@ -1519,20 +1520,30 @@ namespace TiaMcpServer.Siemens
                 hasSoftware = true;
             }
 
-            if (softwareContainer?.Software is HmiSoftware hmiSoftware)
-            {
-                var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
-                                   (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems && !hasSoftware)}HmiSoftware: {hmiSoftware.Name} [HMI Program]");
-                hasSoftware = true;
-            }
-
+            //WinCC HMI software
             if (softwareContainer?.Software is HmiTarget hmiTarget)
             {
                 var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
                                    (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems && !hasSoftware)}HmiTarget: {hmiTarget.Name} [HMI Program]");
             }
+
+            //Unified HMI software: dlls will only exist on TIA Portal V19 and newer.
+            if (Engineering.TiaMajorVersion >= 19)
+                TryGetUnifiedSoftware(sb, deviceItem, ancestorStates, softwareContainer, hasSoftware);
+        }
+
+        private bool TryGetUnifiedSoftware(StringBuilder sb, DeviceItem deviceItem, List<bool> ancestorStates, SoftwareContainer? softwareContainer, bool hasSoftware)
+        {
+            if (softwareContainer?.Software is HmiSoftware hmiSoftware)
+            {
+                var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
+                                    (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems && !hasSoftware)}HmiSoftware: {hmiSoftware.Name} [HMI Program]");
+                hasSoftware = true;
+            }
+
+            return hasSoftware;
         }
 
         private void GetProjectTreeUngroupedDeviceGroup(StringBuilder sb, DeviceSystemGroup ungroupedDevicesGroup, List<bool> ancestorStates)
