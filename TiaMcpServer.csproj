@@ -19,16 +19,6 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Reference Update="C:\Program Files\Siemens\Automation\Portal V20\PublicAPI\V20\Siemens.Engineering.Hmi.dll">
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
-    <Reference Update="C:\Program Files\Siemens\Automation\Portal V20\PublicAPI\V20\Siemens.Engineering.dll">
-      <Private>False</Private>
-    </Reference>
-  </ItemGroup>
-  <ItemGroup>
     <Compile Remove="tests\**" />
     <None Include="tests\**" />
   </ItemGroup>
