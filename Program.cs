@@ -18,13 +18,15 @@ namespace TiaMcpServer
 
             options.Logging = 1;
 
-            if (options.TiaMajorVersion < 20)
+            Engineering.TiaMajorVersion = options.TiaMajorVersion ?? 20;
+
+            if (Engineering.TiaMajorVersion < 20)
             {
                 AppDomain.CurrentDomain.AssemblyResolve += Engineering.Resolver;
             }
             else
             {
-                Openness.Initialize(options.TiaMajorVersion);
+                Openness.Initialize(Engineering.TiaMajorVersion);
             }
 
             // Ensure user is in user group 'Siemens TIA Openness'

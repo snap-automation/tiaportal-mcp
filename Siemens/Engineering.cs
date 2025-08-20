@@ -10,7 +10,7 @@ namespace TiaMcpServer.Siemens
     // Manual Siemens.Engineering.dll resolve
     public class Engineering
     {
-        public static int TiaMajorVersion { get; private set; }
+        public static int TiaMajorVersion { get; set; }
 
         public static Assembly? Resolver(object sender, ResolveEventArgs args)
         {
