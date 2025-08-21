@@ -35,9 +35,9 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, "LadoA_HMI")]
+        [DataRow(Settings.Project1ProjectPath, "HMI_0")]
         [DataRow(Settings.Project1ProjectPath, "S7-1500_ET200MP station_1")]
-        [DataRow(Settings.Project1ProjectPath, "Group_1/LadoB_HMI")]
+        [DataRow(Settings.Project1ProjectPath, "Group1/HMI_1")]
         //[DataRow(Settings.Project1ProjectPath, "Group1/Group1.1/PC-System_1.1")]
         //[DataRow(Settings.Project1ProjectPath, "Group1/Group1.1/Group1.1.1/PC-System_1.1.1")]
         public void Test_302_GetDevice(string projectPath, string devicePath)

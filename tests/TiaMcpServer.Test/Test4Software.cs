@@ -83,7 +83,7 @@ namespace TiaMcpServer.Test
         #endregion
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "0_OBs/Main_1")]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "01 - Organizations Blocks/Main")]
         [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "0_OBs/Main_1")]
         public void Test_411_GetBlock(string projectPath, string softwarePath, string blockPath)
         {
@@ -112,7 +112,7 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister/ML_SubstratState")]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "_SNP/_CYLINDERS/_SNPCilindro")]
         public void Test_412_GetType(string projectPath, string softwarePath, string typePath)
         {
             if (_portal == null)
@@ -152,6 +152,12 @@ namespace TiaMcpServer.Test
             }
 
             bool success = Common.OpenProject(_portal, projectPath);
+
+            // If the project failed to open, fail the test immediately.
+            if (!success)
+            {
+                Assert.Fail($"Failed to open project at: {projectPath}. Another project might already be open.");
+            }
 
             var result = _portal.GetBlocks(softwarePath, regexName);
 
@@ -203,13 +209,13 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "0_OBs/Main_1", true)]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "0_OBs/Main_1", false)]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "1_Tests/FC_Block_1", true)]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "1_Tests/DB_Block_1", true)]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "01 - Organizations Blocks/Main", true)]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "01 - Organizations Blocks/Main", false)]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Biblioteca/FC_Function_Screen", true)]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Biblioteca/FC_Function_Screen", false)]
         [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, Settings.Session1ExportPath, "0_OBs/Main_1", true)]
         [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, Settings.Session1ExportPath, "0_OBs/Main_1", false)]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/GLOBAL_POSITIONING", true)]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "LadoA/02 - Geral/FC_BasicSignals_LadoA", true)]
         public void Test_415_ExportBlock(string projectPath, string softwarePath, string exportPath, string blockPath, bool preservePath)
         {
             if (_portal == null)
