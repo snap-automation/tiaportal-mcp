@@ -53,12 +53,3 @@ A MCP server which connects to Siemens TIA Portal.
     }
   }
   ```
-
-
-## Using local LLM
-
-- Example using ollama
-  ```
-  $ go install github.com/mark3labs/mcphost@latest`
-  $ mcphost -m ollama:qwen3:4b --config "<path-to>\local.json"
-  ```
