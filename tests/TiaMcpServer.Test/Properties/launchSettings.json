@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "TiaMcpServer.Test": {
+      "commandName": "Project",
+      "commandLineArgs": "--tia-major-version 18"
+    }
+  }
+}

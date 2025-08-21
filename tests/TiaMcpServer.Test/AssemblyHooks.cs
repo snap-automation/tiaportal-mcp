@@ -1,4 +1,5 @@
 ﻿using System;
+using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.Test
 {
@@ -10,6 +11,16 @@ namespace TiaMcpServer.Test
         {
             // Runs once before any tests in the assembly  
             // context.WriteLine("Assembly initialization started");
+            Engineering.TiaMajorVersion = 18;
+
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                AppDomain.CurrentDomain.AssemblyResolve += Engineering.Resolver;
+            }
+            else
+            {
+                Openness.Initialize(Engineering.TiaMajorVersion);
+            }
         }
 
         [AssemblyCleanup]

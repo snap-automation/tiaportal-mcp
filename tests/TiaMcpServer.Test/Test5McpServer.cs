@@ -9,16 +9,9 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public class Test5McpServer
     {
-        private readonly bool _isInitialized = false;
-
         [TestInitialize]
         public void ClassInit()
         {
-            if (!_isInitialized)
-            {
-                Openness.Initialize();
-            }
-
             var response = McpServer.Connect();
         }
 
@@ -104,7 +97,7 @@ namespace TiaMcpServer.Test
             else
             {
                 WriteMessage($"McpServer.GetProjects()", response);
-                
+
                 if (response.Items != null)
                 {
                     response.Items.ToList().ForEach(item =>

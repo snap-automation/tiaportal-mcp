@@ -8,17 +8,11 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public sealed class Test21Project
     {
-        private bool _isInitialized = false;
         private Portal? _portal;
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!_isInitialized)
-            {
-                Openness.Initialize();
-            }
-
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -66,7 +60,7 @@ namespace TiaMcpServer.Test
             // Assert.IsTrue(projects?.Count > 0, "No open projects found");
         }
 
-        
+
 
         [TestMethod]
         [DataRow(Settings.Project1ProjectPath)]

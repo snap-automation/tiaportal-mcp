@@ -8,17 +8,11 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public sealed class Test3Devices
     {
-        private bool _isInitialized = false;
         private Portal? _portal;
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!_isInitialized)
-            {
-                Openness.Initialize();
-            }
-
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -41,11 +35,11 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, "HMI_0")]
-        [DataRow(Settings.Project1ProjectPath, "PC-System_0")]
-        [DataRow(Settings.Project1ProjectPath, "Group1/PC-System_1")]
-        [DataRow(Settings.Project1ProjectPath, "Group1/Group1.1/PC-System_1.1")]
-        [DataRow(Settings.Project1ProjectPath, "Group1/Group1.1/Group1.1.1/PC-System_1.1.1")]
+        [DataRow(Settings.Project1ProjectPath, "LadoA_HMI")]
+        [DataRow(Settings.Project1ProjectPath, "S7-1500_ET200MP station_1")]
+        [DataRow(Settings.Project1ProjectPath, "Group_1/LadoB_HMI")]
+        //[DataRow(Settings.Project1ProjectPath, "Group1/Group1.1/PC-System_1.1")]
+        //[DataRow(Settings.Project1ProjectPath, "Group1/Group1.1/Group1.1.1/PC-System_1.1.1")]
         public void Test_302_GetDevice(string projectPath, string devicePath)
         {
             if (_portal == null)
