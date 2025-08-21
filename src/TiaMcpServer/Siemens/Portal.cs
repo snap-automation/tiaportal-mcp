@@ -142,17 +142,16 @@ namespace TiaMcpServer.Siemens
                 {
                     _portal = processes.First().Attach();
 
-                    // checks for existing projects
-                    if (_portal.Projects.Any())
-                    {
-                        _project = _portal.Projects.First();
-                    }
-
                     // check for existing local sessions
                     if (_portal.LocalSessions.Any())
                     {
                         _session = _portal.LocalSessions.First();
                         _project = _session.Project;
+                    }
+                    // checks for existing projects
+                    else if (_portal.Projects.Any())
+                    {
+                        _project = _portal.Projects.First();
                     }
 
                     return true;
@@ -203,6 +202,20 @@ namespace TiaMcpServer.Siemens
         public State GetState()
         {
             _logger?.LogInformation("Getting TIA Portal state...");
+            if (_portal != null)
+            {
+                // check for existing local sessions
+                if (_portal.LocalSessions.Any())
+                {
+                    _session = _portal.LocalSessions.First();
+                    _project = _session.Project;
+                }
+                // checks for existing projects
+                else if (_portal.Projects.Any())
+                {
+                    _project = _portal.Projects.First();
+                }
+            }
 
             return new State
             {
