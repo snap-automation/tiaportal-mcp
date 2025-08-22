@@ -1,8 +1,6 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using Siemens.Engineering;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.Test
@@ -11,19 +9,13 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public sealed class Test22Session
     {
+        
         private Portal? _portal;
-        private readonly string _tiaVersion = "V20"; // This test focuses on V20 sessions
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!ConfigurationHelper.IsTiaPortalVersionInstalled(_tiaVersion))
-            {
-                Assert.Inconclusive($"TIA Portal {_tiaVersion} is not installed on this machine.");
-            }
-
-            Openness.Initialize();
-
+            
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -68,7 +60,7 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetSessionPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Session1ProjectPath)]
         public void Test_222_OpenSession(string path)
         {
             if (_portal == null)
@@ -106,7 +98,7 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetSessionPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Session1ProjectPath)]
         public void Test_224_CloseSession(string path)
         {
             if (_portal == null)
@@ -123,7 +115,7 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetSessionPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Session1ProjectPath)]
         public void Test_225_SaveSession(string path)
         {
             if (_portal == null)
@@ -137,15 +129,6 @@ namespace TiaMcpServer.Test
             Console.WriteLine($"SaveSession: {path}, result={result}");
 
             Assert.IsTrue(result, "Failed to save session");
-        }
-
-        public static IEnumerable<object[]> GetSessionPaths()
-        {
-            var config = ConfigurationHelper.GetTiaVersionConfig("V20");
-            foreach (var project in config.Projects.Where(p => p.Type == "MultiUser"))
-            {
-                yield return new object[] { project.Path };
-            }
         }
     }
 }

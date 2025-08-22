@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.Test
@@ -11,18 +9,10 @@ namespace TiaMcpServer.Test
     public sealed class Test21Project
     {
         private Portal? _portal;
-        private readonly string _tiaVersion = "V20"; // This test focuses on V20 projects
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!ConfigurationHelper.IsTiaPortalVersionInstalled(_tiaVersion))
-            {
-                Assert.Inconclusive($"TIA Portal {_tiaVersion} is not installed on this machine.");
-            }
-
-            Openness.Initialize();
-
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -70,8 +60,10 @@ namespace TiaMcpServer.Test
             // Assert.IsTrue(projects?.Count > 0, "No open projects found");
         }
 
+
+
         [TestMethod]
-        [DynamicData(nameof(GetProjectPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Project1ProjectPath)]
         public void Test_212_OpenProject(string path)
         {
             if (_portal == null)
@@ -111,7 +103,7 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetProjectPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Project1ProjectPath)]
         public void Test_214_CloseProject(string path)
         {
             if (_portal == null)
@@ -128,7 +120,7 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetProjectPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Project1ProjectPath)]
         public void Test_215_SaveProject(string path)
         {
             if (_portal == null)
@@ -145,7 +137,7 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetProjectAndNewPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PathNew)]
         public void Test_216_SaveAsProject(string path, string newPath)
         {
             if (_portal == null)
@@ -157,24 +149,6 @@ namespace TiaMcpServer.Test
             result &= _portal.SaveAsProject(newPath);
 
             Assert.IsTrue(result, "Failed to save project as new project");
-        }
-
-        public static IEnumerable<object[]> GetProjectPaths()
-        {
-            var config = ConfigurationHelper.GetTiaVersionConfig("V20");
-            foreach (var project in config.Projects.Where(p => p.Type == "Local"))
-            {
-                yield return new object[] { project.Path };
-            }
-        }
-
-        public static IEnumerable<object[]> GetProjectAndNewPaths()
-        {
-            var config = ConfigurationHelper.GetTiaVersionConfig("V20");
-            foreach (var project in config.Projects.Where(p => p.Type == "Local" && p.NewPath != null))
-            {
-                yield return new object[] { project.Path, project.NewPath };
-            }
         }
     }
 }

@@ -1,7 +1,5 @@
-using Microsoft.Extensions.Logging;
+﻿using Microsoft.Extensions.Logging;
 using System;
-using System.Collections.Generic;
-using System.Linq;
 using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.Test
@@ -10,19 +8,13 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public class Test2ProjectSession
     {
+        
         private Portal? _portal;
-        private readonly string _tiaVersion = "V20"; // This test focuses on V20 projects/sessions
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!ConfigurationHelper.IsTiaPortalVersionInstalled(_tiaVersion))
-            {
-                Assert.Inconclusive($"TIA Portal {_tiaVersion} is not installed on this machine.");
-            }
-
-            Openness.Initialize();
-
+            
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -40,7 +32,7 @@ namespace TiaMcpServer.Test
         {
             if (_portal != null)
             {
-                //_portal.CloseSession(); // This was commented out in original, keeping it that way
+                //_portal.CloseSession();
             }
         }
 
@@ -70,7 +62,8 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetProjectAndSessionPaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Project1ProjectPath)]
+        [DataRow(Settings.Session1ProjectPath)]
         public void Test_21_GetProjectTree(string projectPath)
         {
             if (_portal == null)
@@ -91,7 +84,8 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DynamicData(nameof(GetProjectAndSoftwarePaths), DynamicDataSourceType.Method)]
+        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0)]
+        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath)]
         public void Test_22_GetSoftwareTree(string projectPath, string softwarePath)
         {
             if (_portal == null)
@@ -109,34 +103,6 @@ namespace TiaMcpServer.Test
             Console.WriteLine(result);
 
             Assert.IsNotNull(result, "No software found");
-        }
-
-        public static IEnumerable<object[]> GetProjectAndSessionPaths()
-        {
-            var config = ConfigurationHelper.GetTiaVersionConfig("V20");
-            foreach (var project in config.Projects)
-            {
-                yield return new object[] { project.Path };
-            }
-        }
-
-        public static IEnumerable<object[]> GetProjectAndSoftwarePaths()
-        {
-            var config = ConfigurationHelper.GetTiaVersionConfig("V20");
-            foreach (var project in config.Projects)
-            {
-                if (project.PlcSoftwarePaths != null)
-                {
-                    foreach (var softwarePath in project.PlcSoftwarePaths)
-                    {
-                        yield return new object[] { project.Path, softwarePath };
-                    }
-                }
-                else if (project.PlcSoftwarePath != null) // Handle single PlcSoftwarePath
-                {
-                    yield return new object[] { project.Path, project.PlcSoftwarePath };
-                }
-            }
         }
     }
 }
