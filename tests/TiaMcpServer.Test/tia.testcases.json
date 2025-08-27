@@ -1,0 +1,78 @@
+[
+  {
+    "name": "Local_Project1_main",
+    "version": 20,
+    "projectPath": "C:\\Users\\Automation\\Desktop\\J4U\\NEW\\TestProject1\\TestProject1.ap20",
+    "exportRoot": "D:\\Temp\\TIA-Portal\\Project1",
+    "plcSoftwarePaths": [
+      {
+        "path": "Group1/PLC_1",
+        "password": ""
+      },
+      {
+        "path": "Group1/PC-System_1/Software PLC_1",
+        "password": ""
+      }
+    ],
+    "devicePaths": [ "HMI_0", "S7-1500_ET200MP station_1", "Group1/HMI_1", "Group1/Group1.1/PC-System_1.1", "Group1/Group1.1/Group1.1.1/PC-System_1.1.1" ],
+    "deviceItemPaths": [ "PLC_0", "PC-System_0/Software PLC_0", "HMI_0/HMI_RT_1", "Group1/PLC_1", "Group1/PC-System_1/Software PLC_1", "Group1/Group1.1/PLC_1.1", "Group1/Group1.1/PC-System_1.1/Software PLC_1.1" ],
+    "projectType": "Local"
+  },
+  {
+    "name": "Local_Project1_grouped",
+    "version": 18,
+    "projectPath": "C:\\TiaPortalTest\\V18\\TestProject1\\TestProject1.ap18",
+    "exportRoot": "C:\\Temp\\TIA-Portal\\Project1_V18",
+    "plcSoftwarePaths": [
+      {
+        "path": "Group1/PLC_1",
+        "password": ""
+      },
+      {
+        "path": "Group1/PC-System_1/Software PLC_1",
+        "password": ""
+      }
+    ],
+    "devicePaths": [ "HMI_0", "S7-1500_ET200MP station_1", "Group1/HMI_1", "Group1/Group1.1/PC-System_1.1", "Group1/Group1.1/Group1.1.1/PC-System_1.1.1" ],
+    "deviceItemPaths": [ "PLC_0", "PC-System_0/Software PLC_0", "HMI_0/HMI_RT_1", "Group1/PLC_1", "Group1/PC-System_1/Software PLC_1", "Group1/Group1.1/PLC_1.1", "Group1/Group1.1/PC-System_1.1/Software PLC_1.1" ],
+    "projectType": "Local"
+  },
+  {
+    "name": "MU_Session1",
+    "version": 20,
+    "projectPath": "D:\\Siemens\\Sessions\\TestSession1\\TestSession1_LS_1.als20",
+    "exportRoot": "D:\\Temp\\TIA-Portal\\TestSession1",
+    "plcSoftwarePaths": [
+      {
+        "path": "Group1/PLC_1",
+        "password": ""
+      },
+      {
+        "path": "Group1/PC-System_1/Software PLC_1",
+        "password": "Safety1st"
+      }
+    ],
+    "devicePaths": [ "HMI_0", "S7-1500_ET200MP station_1", "Group1/HMI_1", "Group1/Group1.1/PC-System_1.1", "Group1/Group1.1/Group1.1.1/PC-System_1.1.1" ],
+    "deviceItemPaths": [ "PLC_0", "PC-System_0/Software PLC_0", "HMI_0/HMI_RT_1", "Group1/PLC_1", "Group1/PC-System_1/Software PLC_1", "Group1/Group1.1/PLC_1.1", "Group1/Group1.1/PC-System_1.1/Software PLC_1.1" ],
+    "projectType": "MultiUser"
+  },
+  {
+    "name": "Local_Project2_grouped",
+    "version": 18,
+    "projectPath": "C:\\TiaPortalTest\\V18\\TestProject1\\TestProject1.ap18",
+    "exportRoot": "C:\\Temp\\TIA-Portal\\Project1_V18",
+    "plcSoftwarePaths": [
+      {
+        "path": "Group1/PLC_1",
+        "password": ""
+      },
+      {
+        "path": "Group1/PC-System_1/Software PLC_1",
+        "password": ""
+      }
+    ],
+    "devicePaths": [ "HMI_0", "S7-1500_ET200MP station_1", "Group1/HMI_1", "Group1/Group1.1/PC-System_1.1", "Group1/Group1.1/Group1.1.1/PC-System_1.1.1" ],
+    "deviceItemPaths": [ "PLC_0", "PC-System_0/Software PLC_0", "HMI_0/HMI_RT_1", "Group1/PLC_1", "Group1/PC-System_1/Software PLC_1", "Group1/Group1.1/PLC_1.1", "Group1/Group1.1/PC-System_1.1/Software PLC_1.1" ],
+    "projectType": "Local"
+  }
+]

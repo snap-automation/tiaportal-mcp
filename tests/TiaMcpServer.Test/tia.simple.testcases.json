@@ -1,0 +1,40 @@
+[
+  {
+    "Name": "Simple Case 1",
+    "Version": 18,
+    "ProjectPath": "C:\\Path\\To\\Project1.ap18",
+    "ExportRoot": "C:\\Path\\To\\Export1",
+
+    "DevicePaths": [
+      "HMI_0",
+      "HMI_1"
+    ],
+
+    "DeviceItemPaths": [
+      "PLC_0",
+      "PLC_1",
+    ],
+    "BlockPaths": []
+
+
+  },
+  {
+    "Name": "Simple Case 2",
+    "Version": 18,
+    "ProjectPath": "C:\\Path\\To\\Project1.ap18",
+    "ExportRoot": "C:\\Path\\To\\Export1",
+
+    "DevicePaths": [
+      "HMI_0",
+      "PLC_1",
+    ],
+
+    "DeviceItemPaths": [
+      "PLC_0",
+      "Group_1/PLC_1",
+    ],
+    "BlockPaths": []
+
+
+  }
+]
