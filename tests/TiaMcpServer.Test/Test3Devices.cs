@@ -74,6 +74,11 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
+        //Alimentar simpletiatestcase json com todas informa'~oes originais do projeto v20
+        //alimentar com todas atualizacoes do alexandro p/ v18
+        //ajustar os nomes (tirar test e simple)
+        //garantir a filtragem via hard code (default = 18)
+        //criar uma segunda test case com um segundo projeto v18.
         //[DataRow(Settings.Project1ProjectPath, "PLC_0")]
         //[DataRow(Settings.Project1ProjectPath, "PC-System_0/Software PLC_0")]
         //[DataRow(Settings.Project1ProjectPath, "HMI_0/HMI_RT_1")]
