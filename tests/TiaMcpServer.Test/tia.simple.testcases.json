@@ -2,36 +2,69 @@
   {
     "Name": "TIA V20 Normal Project Test Case",
     "Version": 20,
-    "ProjectPath": "C:\\Path\\To\\Project1.ap18",
-    "ExportRoot": "C:\\Path\\To\\Export1",
+    "ProjectPath": "D:\\Siemens\\Test\\TestProject1\\TestProject1.ap20",
+    "ExportRoot": "D:\\Siemens\\Archives\\Projects\\SaveAs\\TestProject1\\TestProject1",
 
     "DevicePaths": [
       "HMI_0",
-      "HMI_1"
+      "PC-System_0",
+      "Group1/PC-System_1",
+      "Group1/Group1.1/PC-System_1.1",
+      "Group1/Group1.1/Group1.1.1/PC-System_1.1.1"
     ],
 
     "DeviceItemPaths": [
       "PLC_0",
-      "PLC_1",
+      "PC-System_0/Software PLC_0",
+      "HMI_0/HMI_RT_1",
+      "Group1/PLC_1",
+      "Group1/PC-System_1/Software PLC_1",
+      "Group1/Group1.1/PLC_1.1",
+      "Group1/Group1.1/PC-System_1.1/Software PLC_1.1"
     ],
     "BlockPaths": []
 
 
   },
   {
-    "Name": "Simple Case 2",
+    "Name": "TIA V20 MultiUser Project Test Case",
+    "Version": 20,
+    "ProjectPath": "D:\\Siemens\\Sessions\\TestSession1\\TestSession1_LS_1.als20",
+    "ExportRoot": "D:\\Temp\\TIA-Portal\\TestSession1",
+
+    "DevicePaths": [
+      
+    ],
+
+    "DeviceItemPaths": [
+      
+    ],
+    "BlockPaths": []
+
+
+  },
+  {
+    "Name": "TIA V18 Normal Project Test Case",
     "Version": 18,
-    "ProjectPath": "C:\\Path\\To\\Project1.ap18",
-    "ExportRoot": "C:\\Path\\To\\Export1",
+    "ProjectPath": "C:\\TiaPortalTest\\V18\\TestProject1\\TestProject1.ap18",
+    "ExportRoot": "C:\\Temp\\TIA-Portal\\Project1_V18",
 
     "DevicePaths": [
       "HMI_0",
-      "PLC_1",
+      "PC-System_0",
+      "Group1/PC-System_1",
+      "Group1/Group1.1/PC-System_1.1",
+      "Group1/Group1.1/Group1.1.1/PC-System_1.1.1"
     ],
 
     "DeviceItemPaths": [
       "PLC_0",
-      "Group_1/PLC_1",
+      "PC-System_0/Software PLC_0",
+      "HMI_0/HMI_RT_1",
+      "Group1/PLC_1",
+      "Group1/PC-System_1/Software PLC_1",
+      "Group1/Group1.1/PLC_1.1",
+      "Group1/Group1.1/PC-System_1.1/Software PLC_1.1"
     ],
     "BlockPaths": []
 

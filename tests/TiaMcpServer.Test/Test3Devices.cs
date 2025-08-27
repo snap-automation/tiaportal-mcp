@@ -36,49 +36,35 @@ namespace TiaMcpServer.Test
 
         [TestMethod]
         [DynamicData(nameof(TiaTestCases.GetDeviceDataSource), typeof(TiaTestCases))]
-        public void Test_302_GetDevice(SimpleTiaTestCase testCase)
+        public void Test_302_GetDevice(SimpleTiaTestCase testCase, string devicePath)
         {
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool overallSuccess = true;
-
             bool success = Common.OpenProject(_portal, testCase.ProjectPath);
-            overallSuccess &= success;
 
-            if (success)
+            var result = _portal.GetDevice(devicePath);
+            if (result != null)
             {
-                foreach (var devicePath in testCase.DevicePaths)
-                {
-                    var result = _portal.GetDevice(devicePath);
-                    if (result != null)
-                    {
-                        Console.WriteLine($"Device: {result?.Name} found under {devicePath}");
-                    }
-                    else
-                    {
-                        Console.WriteLine($"Device not found under {devicePath}");
-                    }
-                    overallSuccess &= result != null;
-                }
+                Console.WriteLine($"Device: {result?.Name} found under {devicePath}");
+            }
+            else
+            {
+                Console.WriteLine($"Device not found under {devicePath}");
             }
 
-            success = Common.CloseProject(_portal, testCase.ProjectPath);
-            overallSuccess &= success;
+            success &= result != null;
 
-            Console.WriteLine($"overallSuccess={overallSuccess}");
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
-            Assert.IsTrue(overallSuccess, "One or more devices not found");
+            Console.WriteLine($"success={success}");
+
+            Assert.IsTrue(success, "No Device found");
         }
 
         [TestMethod]
-        //Alimentar simpletiatestcase json com todas informa'~oes originais do projeto v20
-        //alimentar com todas atualizacoes do alexandro p/ v18
-        //ajustar os nomes (tirar test e simple)
-        //garantir a filtragem via hard code (default = 18)
-        //criar uma segunda test case com um segundo projeto v18.
         //[DataRow(Settings.Project1ProjectPath, "PLC_0")]
         //[DataRow(Settings.Project1ProjectPath, "PC-System_0/Software PLC_0")]
         //[DataRow(Settings.Project1ProjectPath, "HMI_0/HMI_RT_1")]
