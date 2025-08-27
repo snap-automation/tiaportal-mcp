@@ -1,7 +1,7 @@
 [
   {
-    "Name": "Simple Case 1",
-    "Version": 18,
+    "Name": "TIA V20 Normal Project Test Case",
+    "Version": 20,
     "ProjectPath": "C:\\Path\\To\\Project1.ap18",
     "ExportRoot": "C:\\Path\\To\\Export1",
 
