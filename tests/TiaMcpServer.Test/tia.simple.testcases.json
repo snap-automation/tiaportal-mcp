@@ -29,15 +29,15 @@
   {
     "Name": "TIA V20 MultiUser Project Test Case",
     "Version": 20,
-    "ProjectPath": "D:\\Siemens\\Sessions\\TestSession1\\TestSession1_LS_1.als20",
+    "ProjectPath": "D:\\Siemens\\Sessions\\TestSession1_LS_1\\TestSession1_LS_1.als20",
     "ExportRoot": "D:\\Temp\\TIA-Portal\\TestSession1",
 
     "DevicePaths": [
-      
+
     ],
 
     "DeviceItemPaths": [
-      
+
     ],
     "BlockPaths": []
 

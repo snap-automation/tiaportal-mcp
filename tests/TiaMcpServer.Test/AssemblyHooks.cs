@@ -11,7 +11,7 @@ namespace TiaMcpServer.Test
         {
             // Runs once before any tests in the assembly  
             // context.WriteLine("Assembly initialization started");
-            Engineering.TiaMajorVersion = 18;
+            Engineering.TiaMajorVersion = 20;
 
             if (Engineering.TiaMajorVersion < 20)
             {
