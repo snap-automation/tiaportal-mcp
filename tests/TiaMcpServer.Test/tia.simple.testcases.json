@@ -5,7 +5,6 @@
     "MultiUser": false,
     "ProjectPath": "D:\\Siemens\\Test\\TestProject1\\TestProject1.ap20",
     "ExportRoot": "D:\\Siemens\\Archives\\Projects\\SaveAs\\TestProject1\\TestProject1",
-
     "DevicePaths": [
       "HMI_0",
       "PC-System_0",
@@ -13,7 +12,6 @@
       "Group1/Group1.1/PC-System_1.1",
       "Group1/Group1.1/Group1.1.1/PC-System_1.1.1"
     ],
-
     "DeviceItemPaths": [
       "PLC_0",
       "PC-System_0/Software PLC_0",
@@ -23,9 +21,17 @@
       "Group1/Group1.1/PLC_1.1",
       "Group1/Group1.1/PC-System_1.1/Software PLC_1.1"
     ],
-    "BlockPaths": []
-
-
+    "BlockPaths": [],
+    "PlcSoftware": [
+      { "Path": "PLC_0", "Password": "" },
+      { "Path": "PC-System_0/Software PLC_0", "Password": "" },
+      { "Path": "Group1/PLC_1", "Password": "" },
+      { "Path": "Group1/PC-System_1/Software PLC_1", "Password": "" },
+      { "Path": "Group1/Group1.1/PLC_1.1", "Password": "" },
+      { "Path": "Group1/Group1.1/PC-System_1.1/Software PLC_1.1", "Password": "" },
+      { "Path": "Group1/Group1.1/Group1.1.1/PLC_1.1.1", "Password": "" },
+      { "Path": "Group1/Group1.1/Group1.1.1/PC-System_1.1.1/Software PLC_1.1.1", "Password": "" }
+    ]
   },
   {
     "Name": "TIA V20 MultiUser Project Test Case",
@@ -33,17 +39,12 @@
     "MultiUser": true,
     "ProjectPath": "D:\\Siemens\\Sessions\\TestSession1_LS_1\\TestSession1_LS_1.als20",
     "ExportRoot": "D:\\Temp\\TIA-Portal\\TestSession1",
-
-    "DevicePaths": [
-
-    ],
-
-    "DeviceItemPaths": [
-
-    ],
-    "BlockPaths": []
-
-
+    "DevicePaths": [],
+    "DeviceItemPaths": [],
+    "BlockPaths": [],
+    "PlcSoftware": [
+      { "Path": "PC-System_1/Software PLC_1", "Password": "Safety1st" }
+    ]
   },
   {
     "Name": "TIA V18 Normal Project Test Case",
@@ -51,7 +52,6 @@
     "MultiUser": false,
     "ProjectPath": "C:\\TiaPortalTest\\V18\\TestProject1\\TestProject1.ap18",
     "ExportRoot": "C:\\Temp\\TIA-Portal\\Project1_V18",
-
     "DevicePaths": [
       "HMI_0",
       "PC-System_0",
@@ -59,7 +59,6 @@
       "Group1/Group1.1/PC-System_1.1",
       "Group1/Group1.1/Group1.1.1/PC-System_1.1.1"
     ],
-
     "DeviceItemPaths": [
       "PLC_0",
       "PC-System_0/Software PLC_0",
@@ -69,8 +68,16 @@
       "Group1/Group1.1/PLC_1.1",
       "Group1/Group1.1/PC-System_1.1/Software PLC_1.1"
     ],
-    "BlockPaths": []
-
-
+    "BlockPaths": [],
+    "PlcSoftware": [
+      { "Path": "PLC_0", "Password": "" },
+      { "Path": "PC-System_0/Software PLC_0", "Password": "" },
+      { "Path": "Group1/PLC_1", "Password": "" },
+      { "Path": "Group1/PC-System_1/Software PLC_1", "Password": "" },
+      { "Path": "Group1/Group1.1/PLC_1.1", "Password": "" },
+      { "Path": "Group1/Group1.1/PC-System_1.1/Software PLC_1.1", "Password": "" },
+      { "Path": "Group1/Group1.1/Group1.1.1/PLC_1.1.1", "Password": "" },
+      { "Path": "Group1/Group1.1/Group1.1.1/PC-System_1.1.1/Software PLC_1.1.1", "Password": "" }
+    ]
   }
 ]
