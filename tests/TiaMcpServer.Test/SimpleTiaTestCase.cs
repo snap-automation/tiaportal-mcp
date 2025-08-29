@@ -6,6 +6,7 @@ namespace TiaMcpServer.Test
     {
         public string? Name { get; set; }
         public int Version { get; set; }
+        public bool MultiUser { get; set; }
         public string? ProjectPath { get; set; }
         public string? ExportRoot { get; set; }
         public List<string>? DevicePaths { get; set; }

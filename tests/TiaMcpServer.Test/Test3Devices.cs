@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using TiaMcpServer.Siemens;
 
@@ -38,6 +38,9 @@ namespace TiaMcpServer.Test
         [DynamicData(nameof(TiaTestCases.GetDeviceDataSource), typeof(TiaTestCases))]
         public void Test_302_GetDevice(SimpleTiaTestCase testCase, string devicePath)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
@@ -75,6 +78,9 @@ namespace TiaMcpServer.Test
         [DynamicData(nameof(TiaTestCases.GetDeviceItemSource), typeof(TiaTestCases))]
         public void Test_302_GetDeviceItem(SimpleTiaTestCase c, string deviceItemPath)
         {
+            if (c.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {c.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
@@ -107,6 +113,9 @@ namespace TiaMcpServer.Test
         [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
         public void Test_303_GetDevices(SimpleTiaTestCase c)
         {
+            if (c.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {c.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");

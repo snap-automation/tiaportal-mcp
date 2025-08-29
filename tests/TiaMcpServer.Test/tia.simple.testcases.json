@@ -2,6 +2,7 @@
   {
     "Name": "TIA V20 Normal Project Test Case",
     "Version": 20,
+    "MultiUser": false,
     "ProjectPath": "D:\\Siemens\\Test\\TestProject1\\TestProject1.ap20",
     "ExportRoot": "D:\\Siemens\\Archives\\Projects\\SaveAs\\TestProject1\\TestProject1",
 
@@ -29,6 +30,7 @@
   {
     "Name": "TIA V20 MultiUser Project Test Case",
     "Version": 20,
+    "MultiUser": true,
     "ProjectPath": "D:\\Siemens\\Sessions\\TestSession1_LS_1\\TestSession1_LS_1.als20",
     "ExportRoot": "D:\\Temp\\TIA-Portal\\TestSession1",
 
@@ -46,6 +48,7 @@
   {
     "Name": "TIA V18 Normal Project Test Case",
     "Version": 18,
+    "MultiUser": false,
     "ProjectPath": "C:\\TiaPortalTest\\V18\\TestProject1\\TestProject1.ap18",
     "ExportRoot": "C:\\Temp\\TIA-Portal\\Project1_V18",
 
