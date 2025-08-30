@@ -1091,14 +1091,19 @@ namespace TiaMcpServer.Siemens
                             {
                                 File.Delete(path);
                             }
-                            block.Export(new FileInfo(path), ExportOptions.None);
 
-                            exportList.Add(block);
+                            if (block.IsConsistent) 
+                            {
+                                block.Export(new FileInfo(path), ExportOptions.None);
+
+                                exportList.Add(block);
+                            }
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             // Console.WriteLine($"Error exporting block '{block.Name}': {ex.Message}");
-                            continue;
+                            // continue;
+                            throw new Exception($"Exception at block '{block.Name}'. {ex.Message}");
                         }
                     }
                 }
@@ -1153,14 +1158,19 @@ namespace TiaMcpServer.Siemens
                                 File.Delete(path);
                             }
 
-                            type.Export(new FileInfo(path), ExportOptions.None);
+                            if(type.IsConsistent)
+                            {
+                                type.Export(new FileInfo(path), ExportOptions.None);
 
-                            exportList.Add(type);
+                                exportList.Add(type);
+                            }
+
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             // Console.WriteLine($"Error exporting user defined type '{type.Name}': {ex.Message}");
-                            continue;
+                            // continue;
+                            throw new Exception($"Exception at type '{type.Name}'. {ex.Message}");
                         }
                     }
                 }
@@ -1242,14 +1252,16 @@ namespace TiaMcpServer.Siemens
                                 success = true;
                             }
                         }
-                        catch (EngineeringNotSupportedException)
+                        catch (EngineeringNotSupportedException ex)
                         {
                             // The export or import of blocks with mixed programming languages is not possible
                             // Console.WriteLine($"Error exporting block as document: {ex.Message}");
+                            throw new Exception($"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}");
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             // Console.WriteLine($"Error creating export directory: {ex.Message}");
+                            throw new Exception($"Exception at block '{blockName}'. {ex.Message}");
                         }
 
                     }
@@ -1614,7 +1626,7 @@ namespace TiaMcpServer.Siemens
                     // Add types section
                     if (hasTypes)
                     {
-                        sections.Add(() => GetSoftwareTreeTypeGroup(sb, plcSoftware.TypeGroup, ancestorStates, "User-defined data types", true));
+                        sections.Add(() => GetSoftwareTreeTypeGroup(sb, plcSoftware.TypeGroup, ancestorStates, "PLC data types", true));
                     }
                     
                     
@@ -1640,7 +1652,7 @@ namespace TiaMcpServer.Siemens
         
         private void GetSoftwareTreeBlockGroup(StringBuilder sb, PlcBlockGroup blockGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
         {
-            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel} [Collection]");
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel}"); // [Collection]
             var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
             
             // Get blocks in this group
@@ -1653,8 +1665,12 @@ namespace TiaMcpServer.Siemens
                 var block = blocks[i];
                 // Block is last only if it's the last block AND there are no subgroups following
                 var isLastBlock = (i == blocks.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
+
+                var blockTypeName = new[] { "ArrayDB", "GlobalDB", "InstanceDB" }.Contains(block.GetType().Name)
+                    ? "DB"
+                    : block.GetType().Name;
+
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastBlock)}{block.Name} [{blockTypeName}{block.Number}, {block.ProgrammingLanguage}]");
             }
             
             // Then, add all subgroups recursively
@@ -1663,8 +1679,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name} [Block Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name}"); // [Block Group]
+
                 var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
                 GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
             }
@@ -1682,8 +1698,12 @@ namespace TiaMcpServer.Siemens
                 var block = blocks[i];
                 // Block is last only if it's the last block AND there are no subgroups following
                 var isLastBlock = (i == blocks.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
+
+                var blockTypeName = new[] { "ArrayDB", "GlobalDB", "InstanceDB" }.Contains(block.GetType().Name)
+                    ? "DB"
+                    : block.GetType().Name;
+
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastBlock)}{block.Name} [{blockTypeName}{block.Number}, {block.ProgrammingLanguage}]");
             }
             
             // Then, add all subgroups recursively
@@ -1692,8 +1712,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name} [Block Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name}"); // [Block Group]
+
                 var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
                 GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
             }
@@ -1702,7 +1722,7 @@ namespace TiaMcpServer.Siemens
         private void GetSoftwareTreeTypeGroup(StringBuilder sb, PlcTypeGroup typeGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
         {
             
-            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel} [Collection]");
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel}"); // [Collection]
             var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
             
             // Get types in this group
@@ -1715,8 +1735,11 @@ namespace TiaMcpServer.Siemens
                 var type = types[i];
                 // Type is last only if it's the last type AND there are no subgroups following
                 var isLastType = (i == types.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
+
+                var typeTypeName = type.GetType().Name;
+                typeTypeName = typeTypeName=="PlcStruct" ? "UDT": typeTypeName;
+
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastType)}{type.Name} [{typeTypeName}]");
             }
             
             // Then, add all subgroups recursively
@@ -1725,8 +1748,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name} [Type Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name}"); // [Type Group]
+
                 var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
                 GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
             }
@@ -1744,8 +1767,11 @@ namespace TiaMcpServer.Siemens
                 var type = types[i];
                 // Type is last only if it's the last type AND there are no subgroups following
                 var isLastType = (i == types.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
+
+                var typeTypeName = type.GetType().Name;
+                typeTypeName = typeTypeName == "PlcStruct" ? "UDT" : typeTypeName;
+
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastType)}{type.Name} [{typeTypeName}]");
             }
             
             // Then, add all subgroups recursively
@@ -1754,8 +1780,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name} [Type Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name}"); // [Type Group]
+
                 var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
                 GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
             }
