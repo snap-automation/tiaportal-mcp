@@ -77,5 +77,24 @@ namespace TiaMcpServer.Test
                 }
             }
         }
+
+        public static IEnumerable<object[]> GetBlockDataSource()
+        {
+            var filteredTestCases = GetTestCasesByVersion();
+            foreach (var testCase in filteredTestCases)
+            {
+                if (testCase.PlcSoftware != null && testCase.BlockPaths != null)
+                {
+                    foreach (var blockPathInfo in testCase.BlockPaths)
+                    {
+                        var plcSoftware = testCase.PlcSoftware.FirstOrDefault(p => p.Path == blockPathInfo.PlcSoftwarePath);
+                        if (plcSoftware != null)
+                        {
+                            yield return new object[] { testCase, plcSoftware, blockPathInfo.Path };
+                        }
+                    }
+                }
+            }
+        }
     }
 }

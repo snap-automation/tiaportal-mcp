@@ -21,7 +21,12 @@
       "Group1/Group1.1/PLC_1.1",
       "Group1/Group1.1/PC-System_1.1/Software PLC_1.1"
     ],
-    "BlockPaths": [],
+    "BlockPaths": [
+      {
+        "Path": "0_OBs/Main_1",
+        "PlcSoftwarePath": "PLC_0"
+      }
+    ],
     "PlcSoftware": [
       { "Path": "PLC_0", "Password": "" },
       { "Path": "PC-System_0/Software PLC_0", "Password": "" },
@@ -41,7 +46,12 @@
     "ExportRoot": "D:\\Temp\\TIA-Portal\\TestSession1",
     "DevicePaths": [],
     "DeviceItemPaths": [],
-    "BlockPaths": [],
+    "BlockPaths": [
+      {
+        "Path": "0_OBs/Main_1",
+        "PlcSoftwarePath": "PC-System_1/Software PLC_1"
+      }
+    ],
     "PlcSoftware": [
       { "Path": "PC-System_1/Software PLC_1", "Password": "Safety1st" }
     ]

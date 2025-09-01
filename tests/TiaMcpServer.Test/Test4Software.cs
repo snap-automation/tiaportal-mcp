@@ -38,28 +38,32 @@ namespace TiaMcpServer.Test
         #region plc software
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath1, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath2, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath3, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath4, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath5, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath6, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath7, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath1, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath2, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath3, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath4, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath5, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath6, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath7, "")]
         //[DataRow(Settings.Project2ProjectPath, Settings.Project2PlcSoftwarePath, "")]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "Safety1st")]
-        public void Test_400_CompilePlcSoftware(string projectPath, string softwarePath, string password)
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "Safety1st")]
+        [DynamicData(nameof(TiaTestCases.GetPlcSoftwareSource), typeof(TiaTestCases))]
+        public void Test_400_CompilePlcSoftware(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftware)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
             var state = "";
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
-            // Pass an empty string instead of null to satisfy the non-nullable reference type requirement.  
-            var result = _portal.CompileSoftware(softwarePath, password);
+            // Pass an empty string instead of null to satisfy the non-nullable reference type requirement.
+            var result = _portal.CompileSoftware(plcSoftware.Path, plcSoftware.Password);
             if (result != null)
             {
                 state = result.State.ToString();
@@ -71,7 +75,7 @@ namespace TiaMcpServer.Test
                 success &= false;
             }
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Console.WriteLine($"CompilePlcSoftware: result={state}");
 
@@ -83,18 +87,22 @@ namespace TiaMcpServer.Test
         #endregion
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "01 - Organizations Blocks/Main")]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "0_OBs/Main_1")]
-        public void Test_411_GetBlock(string projectPath, string softwarePath, string blockPath)
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "01 - Organizations Blocks/Main")]
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "0_OBs/Main_1")]
+        [DynamicData(nameof(TiaTestCases.GetBlockDataSource), typeof(TiaTestCases))]
+        public void Test_411_GetBlock(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftware, string blockPath)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
-            var result = _portal.GetBlock(softwarePath, blockPath);
+            var result = _portal.GetBlock(plcSoftware.Path, blockPath);
 
             if (result != null && blockPath.Contains(result.Name, StringComparison.OrdinalIgnoreCase))
             {
@@ -105,7 +113,7 @@ namespace TiaMcpServer.Test
                 Console.WriteLine($"Code Block not found. Expected: '{blockPath}'");
             }
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
 
             Assert.IsNotNull(result, "No code block found");

@@ -12,7 +12,7 @@ namespace TiaMcpServer.Test
         public string? ExportRoot { get; set; }
         public List<string>? DevicePaths { get; set; }
         public List<string>? DeviceItemPaths { get; set; }
-        public List<string>? BlockPaths { get; set; }
+        public List<BlockPathInfo>? BlockPaths { get; set; }
 
         public override string ToString()
         {
