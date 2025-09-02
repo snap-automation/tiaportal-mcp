@@ -33,6 +33,24 @@
         "PlcSoftwarePath": "PLC_0"
       }
     ],
+    "BlocksPaths": [
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "Group1/PLC_1"
+      },
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PC-System_0/Software PLC_0"
+      },
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PLC_0"
+      },
+      {
+        "Regex": "^M.+",
+        "PlcSoftwarePath": "PLC_0"
+      }
+    ],
     "PlcSoftware": [
       { "Path": "PLC_0", "Password": "" },
       { "Path": "PC-System_0/Software PLC_0", "Password": "" },
@@ -64,6 +82,12 @@
         "PlcSoftwarePath": "PC-System_1/Software PLC_1"
       }*/
     ],
+    "BlocksPaths": [
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PC-System_1/Software PLC_1"
+      }
+    ],
     "PlcSoftware": [
       { "Path": "PC-System_1/Software PLC_1", "Password": "Safety1st" }
     ]
@@ -92,6 +116,7 @@
     ],
     "BlockPaths": [],
     "TypePaths": [],
+    "BlocksPaths": [],
     "PlcSoftware": [
       { "Path": "PLC_0", "Password": "" },
       { "Path": "PC-System_0/Software PLC_0", "Password": "" },

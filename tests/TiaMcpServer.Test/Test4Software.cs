@@ -173,28 +173,32 @@ namespace TiaMcpServer.Test
             Assert.IsNotNull(result, "No types");
         }
 
-        [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "^M.+")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath1, "")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath2, "")]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "")]
-        public void Test_413_GetBlocks(string projectPath, string softwarePath, string regexName)
+                [TestMethod]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "^M.+")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath1, "")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath2, "")]
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "")]
+        [DynamicData(nameof(TiaTestCases.GetBlocksDataSource), typeof(TiaTestCases))]
+        public void Test_413_GetBlocks(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftware, string regexName)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
             // If the project failed to open, fail the test immediately.
             if (!success)
             {
-                Assert.Fail($"Failed to open project at: {projectPath}. Another project might already be open.");
+                Assert.Fail($"Failed to open project at: {testCase.ProjectPath}. Another project might already be open.");
             }
 
-            var result = _portal.GetBlocks(softwarePath, regexName);
+            var result = _portal.GetBlocks(plcSoftware.Path, regexName);
 
             // write list to console
             Console.WriteLine("Blocks:");
@@ -210,7 +214,7 @@ namespace TiaMcpServer.Test
                 }
             }
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Assert.IsNotNull(result, "No blocks found");
         }
