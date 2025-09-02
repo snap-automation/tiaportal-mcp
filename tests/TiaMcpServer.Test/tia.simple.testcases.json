@@ -33,6 +33,12 @@
         "PlcSoftwarePath": "PLC_0"
       }
     ],
+    "TypesPaths": [
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PLC_0"
+      }
+    ],
     "BlocksPaths": [
       {
         "Regex": "",
@@ -52,14 +58,38 @@
       }
     ],
     "PlcSoftware": [
-      { "Path": "PLC_0", "Password": "" },
-      { "Path": "PC-System_0/Software PLC_0", "Password": "" },
-      { "Path": "Group1/PLC_1", "Password": "" },
-      { "Path": "Group1/PC-System_1/Software PLC_1", "Password": "" },
-      { "Path": "Group1/Group1.1/PLC_1.1", "Password": "" },
-      { "Path": "Group1/Group1.1/PC-System_1.1/Software PLC_1.1", "Password": "" },
-      { "Path": "Group1/Group1.1/Group1.1.1/PLC_1.1.1", "Password": "" },
-      { "Path": "Group1/Group1.1/Group1.1.1/PC-System_1.1.1/Software PLC_1.1.1", "Password": "" }
+      {
+        "Path": "PLC_0",
+        "Password": ""
+      },
+      {
+        "Path": "PC-System_0/Software PLC_0",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/PLC_1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/PC-System_1/Software PLC_1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/Group1.1/PLC_1.1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/Group1.1/PC-System_1.1/Software PLC_1.1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/Group1.1/Group1.1.1/PLC_1.1.1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/Group1.1/Group1.1.1/PC-System_1.1.1/Software PLC_1.1.1",
+        "Password": ""
+      }
     ]
   },
   {
@@ -82,6 +112,20 @@
         "PlcSoftwarePath": "PC-System_1/Software PLC_1"
       }*/
     ],
+    "TypesPaths": [
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PC-System_1/Software PLC_1"
+      },
+      {
+        "Regex": "DataTyp.+",
+        "PlcSoftwarePath": "PC-System_1/Software PLC_1"
+      },
+      {
+        "Regex": "ErrTyp.+",
+        "PlcSoftwarePath": "PC-System_1/Software PLC_1"
+      }
+    ],
     "BlocksPaths": [
       {
         "Regex": "",
@@ -89,7 +133,10 @@
       }
     ],
     "PlcSoftware": [
-      { "Path": "PC-System_1/Software PLC_1", "Password": "Safety1st" }
+      {
+        "Path": "PC-System_1/Software PLC_1",
+        "Password": "Safety1st"
+      }
     ]
   },
   {

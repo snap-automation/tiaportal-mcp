@@ -219,21 +219,25 @@ namespace TiaMcpServer.Test
             Assert.IsNotNull(result, "No blocks found");
         }
 
-        [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "")]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "")]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "DataTyp.+")]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "ErrTyp.+")]
-        public void Test_414_GetTypes(string projectPath, string softwarePath, string regexName)
+                [TestMethod]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "")]
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "")]
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "DataTyp.+")]
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "ErrTyp.+")]
+        [DynamicData(nameof(TiaTestCases.GetTypesDataSource), typeof(TiaTestCases))]
+        public void Test_414_GetTypes(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftware, string regexName)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
-            var result = _portal.GetTypes(softwarePath, regexName);
+            var result = _portal.GetTypes(plcSoftware.Path, regexName);
 
             // write list to console
             Console.WriteLine("Types:");
@@ -242,7 +246,7 @@ namespace TiaMcpServer.Test
                 Console.WriteLine($"- {type.GetType().Name}, {type.Name}");
             }
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Assert.IsNotNull(result, "No types");
         }
