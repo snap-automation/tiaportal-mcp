@@ -175,4 +175,13 @@ namespace TiaMcpServer.ModelContextProtocol
     {
         public IEnumerable<ResponseBlockInfo>? Items { get; set; }
     }
+
+    public class ResponseImportFromDocuments : ResponseMessage
+    {
+    }
+
+    public class ResponseImportBlocksFromDocuments : ResponseMessage
+    {
+        public IEnumerable<ResponseBlockInfo>? Items { get; set; }
+    }
 }
