@@ -301,6 +301,9 @@ namespace TiaMcpServer.Test
             if (testCase.Version != Engineering.TiaMajorVersion)
                 Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
@@ -316,21 +319,25 @@ namespace TiaMcpServer.Test
         }
         
 
-        [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/ML_SubstratState", true)]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/ML_CarrierRegisterShort", true)]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/ML_CarrierRegisterShort", false)]
+                [TestMethod]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/ML_SubstratState", true)]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/ML_CarrierRegisterShort", true)]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/ML_CarrierRegisterShort", false)]
         //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, Settings.Session1ExportPath, "Common/CarrierRegister/ML_SubstratState")]
-        public void Test_416_ExportType(string projectPath, string softwarePath, string exportPath, string typePath, bool preservePath)
+        [DynamicData(nameof(TiaTestCases.GetExportTypeDataSource), typeof(TiaTestCases))]
+        public void Test_416_ExportType(SimpleTiaTestCase testCase, ExportTypeInfo exportTypeInfo)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
-            var result = _portal.ExportType(softwarePath, typePath, exportPath, preservePath);
+            var result = _portal.ExportType(exportTypeInfo.softwarePath, exportTypeInfo.typePath, exportTypeInfo.exportPath, exportTypeInfo.preservePath);
 
             if (result != null)
             {
@@ -343,7 +350,7 @@ namespace TiaMcpServer.Test
                 success &= false;
             }
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Assert.IsTrue(success, "Failed to export types");
         }
