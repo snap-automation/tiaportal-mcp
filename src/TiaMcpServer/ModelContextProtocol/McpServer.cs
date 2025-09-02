@@ -1,13 +1,17 @@
 ﻿using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Siemens.Engineering.SW.Blocks;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.ModelContextProtocol
@@ -846,19 +850,87 @@ namespace TiaMcpServer.ModelContextProtocol
         }
 
         [McpServerTool(Name = "ExportBlocks"), Description("Export all blocks from the plc software to path")]
-        public static ResponseExportBlocks ExportBlocks(
+        public static async Task<ResponseExportBlocks> ExportBlocks(
+            IMcpServer server,
+            RequestContext<CallToolRequestParams> context,
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the blocks")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
             [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
+            var startTime = DateTime.Now;
+            var progressToken = context.Params?.ProgressToken;
+            
             try
             {
-                var list = Portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath);
-                if (list != null)
+                // First, get the list of blocks to determine total count
+                Logger?.LogInformation($"Starting export of blocks from '{softwarePath}' to '{exportPath}'");
+                
+                var allBlocks = await Task.Run(() => Portal.GetBlocks(softwarePath, regexName));
+                var totalBlocks = allBlocks?.Count ?? 0;
+
+                if (totalBlocks == 0)
+                {
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = "No blocks found to export",
+                            progressToken
+                        });
+                    }
+                    
+                    return new ResponseExportBlocks
+                    {
+                        Message = $"No blocks found with regex '{regexName}' in '{softwarePath}'",
+                        Items = new List<ResponseBlockInfo>(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true,
+                            ["totalBlocks"] = 0,
+                            ["exportedBlocks"] = 0,
+                            ["duration"] = (DateTime.Now - startTime).TotalSeconds
+                        }
+                    };
+                }
+
+                // Send initial progress notification
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = 0,
+                        Total = totalBlocks,
+                        Message = $"Starting export of {totalBlocks} blocks...",
+                        progressToken
+                    });
+                }
+
+                // Export blocks asynchronously
+                var exportedBlocks = await Task.Run(() => Portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath));
+                
+                // Send progress update after export completion
+                if (exportedBlocks != null && progressToken != null)
+                {
+                    var exportedCount = exportedBlocks.Count();
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = exportedCount,
+                        Total = totalBlocks,
+                        Message = $"Exported {exportedCount} of {totalBlocks} blocks",
+                        progressToken
+                    });
+                }
+
+                if (exportedBlocks != null)
                 {
                     var responseList = new List<ResponseBlockInfo>();
-                    foreach (var block in list)
+                    var processedCount = 0;
+                    
+                    foreach (var block in exportedBlocks)
                     {
                         if (block != null)
                         {
@@ -879,16 +951,35 @@ namespace TiaMcpServer.ModelContextProtocol
                                 Description = block.ToString()
                             });
                         }
+                        processedCount++;
                     }
+
+                    // Send final progress notification
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = processedCount,
+                            Total = totalBlocks,
+                            Message = $"Export completed: {processedCount} blocks exported successfully",
+                            progressToken
+                        });
+                    }
+
+                    var duration = (DateTime.Now - startTime).TotalSeconds;
+                    Logger?.LogInformation($"Export completed: {processedCount} blocks exported in {duration:F2} seconds");
 
                     return new ResponseExportBlocks
                     {
-                        Message = $"Blocks with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Message = $"Export completed: {processedCount} blocks with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
                         Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
-                            ["success"] = true
+                            ["success"] = true,
+                            ["totalBlocks"] = totalBlocks,
+                            ["exportedBlocks"] = processedCount,
+                            ["duration"] = duration
                         }
                     };
                 }
@@ -899,6 +990,27 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
+                // Send error progress notification if we have a progress token
+                if (progressToken != null)
+                {
+                    try
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = $"Export failed: {ex.Message}",
+                            Error = true,
+                            progressToken
+                        });
+                    }
+                    catch
+                    {
+                        // Ignore notification errors during error handling
+                    }
+                }
+                
+                Logger?.LogError(ex, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}");
                 throw new McpException(-32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex);
             }
         }
@@ -1067,19 +1179,87 @@ namespace TiaMcpServer.ModelContextProtocol
         }
 
         [McpServerTool(Name = "ExportTypes"), Description("Export types from the plc software to path")]
-        public static ResponseExportTypes ExportTypes(
+        public static async Task<ResponseExportTypes> ExportTypes(
+            IMcpServer server,
+            RequestContext<CallToolRequestParams> context,
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the types")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
             [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
+            var startTime = DateTime.Now;
+            var progressToken = context.Params?.ProgressToken;
+            
             try
             {
-                var list = Portal.ExportTypes(softwarePath, exportPath, regexName, preservePath);
-                if (list != null)
+                // First, get the list of types to determine total count
+                Logger?.LogInformation($"Starting export of types from '{softwarePath}' to '{exportPath}'");
+                
+                var allTypes = await Task.Run(() => Portal.GetTypes(softwarePath, regexName));
+                var totalTypes = allTypes?.Count ?? 0;
+
+                if (totalTypes == 0)
+                {
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = "No types found to export",
+                            progressToken
+                        });
+                    }
+                    
+                    return new ResponseExportTypes
+                    {
+                        Message = $"No types found with regex '{regexName}' in '{softwarePath}'",
+                        Items = new List<ResponseTypeInfo>(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true,
+                            ["totalTypes"] = 0,
+                            ["exportedTypes"] = 0,
+                            ["duration"] = (DateTime.Now - startTime).TotalSeconds
+                        }
+                    };
+                }
+
+                // Send initial progress notification
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = 0,
+                        Total = totalTypes,
+                        Message = $"Starting export of {totalTypes} types...",
+                        progressToken
+                    });
+                }
+
+                // Export types asynchronously
+                var exportedTypes = await Task.Run(() => Portal.ExportTypes(softwarePath, exportPath, regexName, preservePath));
+                
+                // Send progress update after export completion
+                if (exportedTypes != null && progressToken != null)
+                {
+                    var exportedCount = exportedTypes.Count();
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = exportedCount,
+                        Total = totalTypes,
+                        Message = $"Exported {exportedCount} of {totalTypes} types",
+                        progressToken
+                    });
+                }
+
+                if (exportedTypes != null)
                 {
                     var responseList = new List<ResponseTypeInfo>();
-                    foreach (var type in list)
+                    var processedCount = 0;
+                    
+                    foreach (var type in exportedTypes)
                     {
                         if (type != null)
                         {
@@ -1097,16 +1277,35 @@ namespace TiaMcpServer.ModelContextProtocol
                                 Description = type.ToString()
                             });
                         }
+                        processedCount++;
                     }
+
+                    // Send final progress notification
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = processedCount,
+                            Total = totalTypes,
+                            Message = $"Export completed: {processedCount} types exported successfully",
+                            progressToken
+                        });
+                    }
+
+                    var duration = (DateTime.Now - startTime).TotalSeconds;
+                    Logger?.LogInformation($"Type export completed: {processedCount} types exported in {duration:F2} seconds");
 
                     return new ResponseExportTypes
                     {
-                        Message = $"Types with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Message = $"Export completed: {processedCount} types with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
                         Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
-                            ["success"] = true
+                            ["success"] = true,
+                            ["totalTypes"] = totalTypes,
+                            ["exportedTypes"] = processedCount,
+                            ["duration"] = duration
                         }
                     };
                 }
@@ -1117,6 +1316,27 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
+                // Send error progress notification if we have a progress token
+                if (progressToken != null)
+                {
+                    try
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = $"Type export failed: {ex.Message}",
+                            Error = true,
+                            progressToken
+                        });
+                    }
+                    catch
+                    {
+                        // Ignore notification errors during error handling
+                    }
+                }
+                
+                Logger?.LogError(ex, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}");
                 throw new McpException(-32000, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex);
             }
         }
@@ -1158,25 +1378,93 @@ namespace TiaMcpServer.ModelContextProtocol
         }
 
         [McpServerTool(Name = "ExportBlocksAsDocuments"), Description("Export as documents (.s7dcl/.s7res) from blocks in the plc software to path")]
-        public static ResponseExportBlocksAsDocuments ExportBlocksAsDocuments(
+        public static async Task<ResponseExportBlocksAsDocuments> ExportBlocksAsDocuments(
+            IMcpServer server,
+            RequestContext<CallToolRequestParams> context,
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the documents")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
             [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
+            var startTime = DateTime.Now;
+            var progressToken = context.Params?.ProgressToken;
+            
             try
             {
-                var list = Portal.ExportBlocksAsDocuments(softwarePath, exportPath, regexName, preservePath);
-                if (list != null)
+                // First, get the list of blocks to determine total count
+                Logger?.LogInformation($"Starting export of blocks as documents from '{softwarePath}' to '{exportPath}'");
+                
+                var allBlocks = await Task.Run(() => Portal.GetBlocks(softwarePath, regexName));
+                var totalBlocks = allBlocks?.Count ?? 0;
+
+                if (totalBlocks == 0)
                 {
-                    var respnseList = new List<ResponseBlockInfo>();
-                    foreach (var block in list)
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = "No blocks found to export as documents",
+                            progressToken
+                        });
+                    }
+                    
+                    return new ResponseExportBlocksAsDocuments
+                    {
+                        Message = $"No blocks found with regex '{regexName}' in '{softwarePath}'",
+                        Items = new List<ResponseBlockInfo>(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true,
+                            ["totalBlocks"] = 0,
+                            ["exportedBlocks"] = 0,
+                            ["duration"] = (DateTime.Now - startTime).TotalSeconds
+                        }
+                    };
+                }
+
+                // Send initial progress notification
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = 0,
+                        Total = totalBlocks,
+                        Message = $"Starting export of {totalBlocks} blocks as documents...",
+                        progressToken
+                    });
+                }
+
+                // Export blocks as documents asynchronously
+                var exportedBlocks = await Task.Run(() => Portal.ExportBlocksAsDocuments(softwarePath, exportPath, regexName, preservePath));
+                
+                // Send progress update after export completion
+                if (exportedBlocks != null && progressToken != null)
+                {
+                    var exportedCount = exportedBlocks.Count();
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = exportedCount,
+                        Total = totalBlocks,
+                        Message = $"Exported {exportedCount} of {totalBlocks} blocks as documents",
+                        progressToken
+                    });
+                }
+
+                if (exportedBlocks != null)
+                {
+                    var responseList = new List<ResponseBlockInfo>();
+                    var processedCount = 0;
+                    
+                    foreach (var block in exportedBlocks)
                     {
                         if (block != null)
                         {
                             var attributes = Helper.GetAttributeList(block);
 
-                            respnseList.Add(new ResponseBlockInfo
+                            responseList.Add(new ResponseBlockInfo
                             {
                                 Name = block.Name,
                                 TypeName = block.GetType().Name,
@@ -1191,16 +1479,35 @@ namespace TiaMcpServer.ModelContextProtocol
                                 Description = block.ToString()
                             });
                         }
+                        processedCount++;
                     }
+
+                    // Send final progress notification
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = processedCount,
+                            Total = totalBlocks,
+                            Message = $"Document export completed: {processedCount} blocks exported successfully",
+                            progressToken
+                        });
+                    }
+
+                    var duration = (DateTime.Now - startTime).TotalSeconds;
+                    Logger?.LogInformation($"Document export completed: {processedCount} blocks exported in {duration:F2} seconds");
 
                     return new ResponseExportBlocksAsDocuments
                     {
-                        Message = $"Documents exported to '{exportPath}'",
-                        Items = respnseList,
+                        Message = $"Document export completed: {processedCount} blocks with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
+                        Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
-                            ["success"] = true
+                            ["success"] = true,
+                            ["totalBlocks"] = totalBlocks,
+                            ["exportedBlocks"] = processedCount,
+                            ["duration"] = duration
                         }
                     };
                 }
@@ -1211,6 +1518,27 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
+                // Send error progress notification if we have a progress token
+                if (progressToken != null)
+                {
+                    try
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = $"Document export failed: {ex.Message}",
+                            Error = true,
+                            progressToken
+                        });
+                    }
+                    catch
+                    {
+                        // Ignore notification errors during error handling
+                    }
+                }
+                
+                Logger?.LogError(ex, $"Failed exporting documents to '{exportPath}'");
                 throw new McpException(-32000, $"Failed exporting documents to '{exportPath}': {ex.Message}", ex);
             }
         }
