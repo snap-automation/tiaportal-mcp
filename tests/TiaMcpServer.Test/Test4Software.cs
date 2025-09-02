@@ -120,7 +120,34 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "_SNP/_CYLINDERS/_SNPCilindro")]
+                [DynamicData(nameof(TiaTestCases.GetTypeDataSource), typeof(TiaTestCases))]
+        public void Test_412_GetType(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftware, string typePath)
+        {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
+            if (_portal == null)
+            {
+                Assert.Fail("TiaPortal instance is not initialized");
+            }
+
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
+
+            var result = _portal.GetType(plcSoftware.Path, typePath);
+
+            if (result != null && typePath.Contains(result.Name, StringComparison.OrdinalIgnoreCase))
+            {
+                Console.WriteLine($"Type found: '{typePath}'");
+            }
+            else
+            {
+                Console.WriteLine($"Type not found. Expected: '{typePath}'");
+            }
+
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
+
+            Assert.IsNotNull(result, "No types");
+        }
         public void Test_412_GetType(string projectPath, string softwarePath, string typePath)
         {
             if (_portal == null)

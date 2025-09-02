@@ -13,6 +13,7 @@ namespace TiaMcpServer.Test
         public List<string>? DevicePaths { get; set; }
         public List<string>? DeviceItemPaths { get; set; }
         public List<BlockPathInfo>? BlockPaths { get; set; }
+        public List<TypePathInfo>? TypePaths { get; set; }
 
         public override string ToString()
         {
