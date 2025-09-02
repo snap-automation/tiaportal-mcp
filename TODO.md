@@ -27,7 +27,7 @@ Centralized list of actionable improvements gathered from initial repo review. U
 - [ ] Consider documenting how to selectively run tests or skip environment-dependent ones (e.g., via MSTest categories) when TIA is unavailable.
 
 ## Housekeeping
-- [ ] Add a "Contributing" link in `README.md` pointing to `AGENTS.md`.
+- [x] Add a "Contributing" link in `README.md` pointing to `agents.md`.
 - [ ] Verify that all fenced code blocks in Markdown include language hints per `style.md` and wrap lines for readability.
 
 ## MCP Tools Docs (Export/Import)

@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
@@ -82,7 +82,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed to connect to TIA-Portal: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error connecting to TIA-Portal: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -110,7 +110,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed disconnecting from TIA-Portal: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error disconnecting from TIA-Portal: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -149,7 +149,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed to retrieve TIA-Portal MCP server state: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving TIA-Portal MCP server state: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -192,9 +192,9 @@ namespace TiaMcpServer.ModelContextProtocol
                     }
                 };
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving open projects: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving open projects: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -246,7 +246,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed to open project '{path}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error opening project '{path}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -296,7 +296,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed saving local project/session: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error saving local project/session: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -333,7 +333,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed saving local project/session as '{newProjectPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error saving local project/session as '{newProjectPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -388,7 +388,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed closing local project/session: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error closing local project/session: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -423,7 +423,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving project tree: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving project tree: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -454,12 +454,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving device info from '{devicePath}'", McpErrorCode.InternalError);
+                    throw new McpException($"Device not found at '{devicePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving device info from '{devicePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving device info from '{devicePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -490,12 +490,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving device item info from '{deviceItemPath}'", McpErrorCode.InternalError);
+                    throw new McpException($"Device item not found at '{deviceItemPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving device item info from '{deviceItemPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving device item info from '{deviceItemPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -536,12 +536,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving device", McpErrorCode.InternalError);
+                    throw new McpException($"Failed retrieving devices", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving devices: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving devices: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -576,12 +576,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving software info from '{softwarePath}'", McpErrorCode.InternalError);
+                    throw new McpException($"Software not found at '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving software info from '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving software info from '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -612,7 +612,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed compiling software '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error compiling software '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -644,7 +644,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving software tree from '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving software tree from '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -687,12 +687,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving block info from '{blockPath}' in '{softwarePath}'", McpErrorCode.InternalError);
+                    throw new McpException($"Block not found at '{blockPath}' in '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving block info from '{blockPath}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving block info from '{blockPath}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -744,12 +744,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}", McpErrorCode.InternalError);
+                    throw new McpException($"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving blocks with regex '{regexName}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -776,12 +776,14 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving block hierarchy from '{softwarePath}'", McpErrorCode.InternalError);
+                    // Specific failure: root group could not be resolved
+                    throw new McpException($"Block root group not found for '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving block hierarchy from '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                // Generic unexpected failure wrapper
+                throw new McpException($"Unexpected error retrieving block hierarchy for '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -816,7 +818,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed exporting block from '{blockPath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error exporting block from '{blockPath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -847,7 +849,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed importing block from '{importPath}' to '{groupPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error importing block from '{importPath}' to '{groupPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1013,7 +1015,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 
                 Logger?.LogError(ex, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}");
-                throw new McpException($"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1053,12 +1055,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException($"Failed retrieving type info from '{typePath}' in '{softwarePath}'", McpErrorCode.InternalError);
+                    throw new McpException($"Type not found at '{typePath}' in '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving type info from '{typePath}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving type info from '{typePath}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1112,7 +1114,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed retrieving user defined types with regex '{regexName}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error retrieving user defined types with regex '{regexName}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1145,7 +1147,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed exporting type from '{typePath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error exporting type from '{typePath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1176,7 +1178,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed importing type from '{importPath}' to '{groupPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error importing type from '{importPath}' to '{groupPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1339,7 +1341,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 
                 Logger?.LogError(ex, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}");
-                throw new McpException($"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error exporting types '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1379,7 +1381,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed exporting documents from '{blockPath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error exporting documents from '{blockPath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1549,7 +1551,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 
                 Logger?.LogError(ex, $"Failed exporting documents to '{exportPath}'");
-                throw new McpException($"Failed exporting documents to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error exporting documents to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1611,7 +1613,7 @@ namespace TiaMcpServer.ModelContextProtocol
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException($"Failed importing from documents: {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error importing from documents: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1759,7 +1761,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
 
                 Logger?.LogError(ex, $"Failed importing documents from '{importPath}'");
-                throw new McpException($"Failed importing documents from '{importPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+                throw new McpException($"Unexpected error importing documents from '{importPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1821,3 +1823,4 @@ namespace TiaMcpServer.ModelContextProtocol
         #endregion
     }
 }
+
