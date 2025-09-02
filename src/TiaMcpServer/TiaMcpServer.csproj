@@ -23,7 +23,4 @@
     <Compile Remove="tests\**" />
     <None Include="tests\**" />
   </ItemGroup>
-  <ItemGroup>
-    <Compile Remove="ModelContextProtocol\McpException.cs" />
-  </ItemGroup>
 </Project>
