@@ -1,9 +1,9 @@
-# tiaportal-mcp-test
+# TiaMcpServer.Test
 
-A test units project for tiaportal-mcp.
+MSTest project verifying portal connectivity, project handling, devices, and MCP server behavior.
 
-## Tests
+## Test Assets
+- `assets/TestProject1.zap20` – local project used in tests.
+- `TestSession1.als20` – create this multi-user session manually for session tests.
 
-- Testing local project: `TestProject1.zap20` is in folder `assets`
-- Testing multi user project: `TestSession1.als20` you have to create by your own
-- Check `Settings.cs` for configuration options
+See `Settings.cs` for configuration options such as project paths and timeouts.

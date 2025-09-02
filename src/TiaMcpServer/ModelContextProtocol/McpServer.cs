@@ -1,14 +1,20 @@
-﻿using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ModelContextProtocol;
+using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
 using Siemens.Engineering.SW.Blocks;
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
+using System.Linq;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using TiaMcpServer.Siemens;
+using Siemens.Engineering.SW;
+using System.Xml.Linq;
 
 namespace TiaMcpServer.ModelContextProtocol
 {
@@ -71,12 +77,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, "Failed to connect to TIA-Portal");
+                    throw new McpException("Failed to connect to TIA-Portal", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed to connect to TIA-Portal: {ex.Message}", ex);
+                throw new McpException($"Unexpected error connecting to TIA-Portal: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -99,12 +105,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, "Failed disconnecting from TIA-Portal");
+                    throw new McpException("Failed disconnecting from TIA-Portal", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed disconnecting from TIA-Portal: {ex.Message}", ex);
+                throw new McpException($"Unexpected error disconnecting from TIA-Portal: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -136,14 +142,14 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, "Failed to retrieve TIA-Portal MCP server state");
+                    throw new McpException("Failed to retrieve TIA-Portal MCP server state", McpErrorCode.InternalError);
                 }
                 
 
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed to retrieve TIA-Portal MCP server state: {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving TIA-Portal MCP server state: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -186,9 +192,9 @@ namespace TiaMcpServer.ModelContextProtocol
                     }
                 };
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving open projects: {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving open projects: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -207,7 +213,7 @@ namespace TiaMcpServer.ModelContextProtocol
                 if (!Regex.IsMatch(extension, @"^\.ap\d+$") &&
                     !Regex.IsMatch(extension, @"^\.als\d+$"))
                 {
-                    throw new McpException(-32000, "Invalid project file extension. Use .apXX for projects or .alsXX for sessions, where XX=18,19,20,....");
+                    throw new McpException("Invalid project file extension. Use .apXX for projects or .alsXX for sessions, where XX=18,19,20,....", McpErrorCode.InvalidParams);
                 }
 
                 bool success = false;
@@ -235,12 +241,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed to open project '{path}'");
+                    throw new McpException($"Failed to open project '{path}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed to open project '{path}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error opening project '{path}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -265,7 +271,7 @@ namespace TiaMcpServer.ModelContextProtocol
                     }
                     else
                     {
-                        throw new McpException(-32000, "Failed to save local session");
+                        throw new McpException("Failed to save local session", McpErrorCode.InternalError);
                     }
                 }
                 else
@@ -284,13 +290,13 @@ namespace TiaMcpServer.ModelContextProtocol
                     }
                     else
                     {
-                        throw new McpException(-32000, "Failed to save project");
+                        throw new McpException("Failed to save project", McpErrorCode.InternalError);
                     }
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed saving local project/session: {ex.Message}", ex);
+                throw new McpException($"Unexpected error saving local project/session: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -302,7 +308,7 @@ namespace TiaMcpServer.ModelContextProtocol
             {
                 if (Portal.IsLocalSession)
                 {
-                    throw new McpException(-32000, $"Cannot save local session as '{newProjectPath}'");
+                    throw new McpException($"Cannot save local session as '{newProjectPath}'", McpErrorCode.InvalidParams);
                 }
                 else
                 {
@@ -320,14 +326,14 @@ namespace TiaMcpServer.ModelContextProtocol
                     }
                     else
                     {
-                        throw new McpException(-32000, $"Failed saving local project as '{newProjectPath}'");
+                        throw new McpException($"Failed saving local project as '{newProjectPath}'", McpErrorCode.InternalError);
                     }
                 }
 
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed saving local project/session as '{newProjectPath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error saving local project/session as '{newProjectPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -355,7 +361,7 @@ namespace TiaMcpServer.ModelContextProtocol
                     }
                     else
                     {
-                        throw new McpException(-32000, "Failed closing local session");
+                        throw new McpException("Failed closing local session", McpErrorCode.InternalError);
                     }
                 }
                 else
@@ -375,14 +381,14 @@ namespace TiaMcpServer.ModelContextProtocol
                     }
                     else
                     {
-                        throw new McpException(-32000, "Failed closing project");
+                        throw new McpException("Failed closing project", McpErrorCode.InternalError);
                     }
                 }
 
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed closing local project/session: {ex.Message}", ex);
+                throw new McpException($"Unexpected error closing local project/session: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -412,12 +418,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, "Failed retrieving project tree");
+                    throw new McpException("Failed retrieving project tree", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving project tree: {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving project tree: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -448,12 +454,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving device info from '{devicePath}'");
+                    throw new McpException($"Device not found at '{devicePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving device info from '{devicePath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving device info from '{devicePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -484,12 +490,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving device item info from '{deviceItemPath}'");
+                    throw new McpException($"Device item not found at '{deviceItemPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving device item info from '{deviceItemPath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving device item info from '{deviceItemPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -530,12 +536,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving device");
+                    throw new McpException($"Failed retrieving devices", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving devices: {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving devices: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -570,12 +576,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving software info from '{softwarePath}'");
+                    throw new McpException($"Software not found at '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving software info from '{softwarePath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving software info from '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -601,12 +607,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed compiling software '{softwarePath}': {result}");
+                    throw new McpException($"Failed compiling software '{softwarePath}': {result}", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed compiling software '{softwarePath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error compiling software '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -633,12 +639,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving software tree from '{softwarePath}'");
+                    throw new McpException($"Failed retrieving software tree from '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving software tree from '{softwarePath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving software tree from '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -681,12 +687,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving block info from '{blockPath}' in '{softwarePath}'");
+                    throw new McpException($"Block not found at '{blockPath}' in '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving block info from '{blockPath}' in '{softwarePath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving block info from '{blockPath}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -738,12 +744,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}");
+                    throw new McpException($"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving blocks with regex '{regexName}' in '{softwarePath}: {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving blocks with regex '{regexName}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -770,12 +776,14 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving block hierarchy from '{softwarePath}'");
+                    // Specific failure: root group could not be resolved
+                    throw new McpException($"Block root group not found for '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving block hierarchy from '{softwarePath}': {ex.Message}", ex);
+                // Generic unexpected failure wrapper
+                throw new McpException($"Unexpected error retrieving block hierarchy for '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -805,12 +813,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed exporting block from '{blockPath}' to '{exportPath}'");
+                    throw new McpException($"Failed exporting block from '{blockPath}' to '{exportPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed exporting block from '{blockPath}' to '{exportPath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error exporting block from '{blockPath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -836,29 +844,97 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed importing block from '{importPath}' to '{groupPath}'");
+                    throw new McpException($"Failed importing block from '{importPath}' to '{groupPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed importing block from '{importPath}' to '{groupPath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error importing block from '{importPath}' to '{groupPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
         [McpServerTool(Name = "ExportBlocks"), Description("Export all blocks from the plc software to path")]
-        public static ResponseExportBlocks ExportBlocks(
+        public static async Task<ResponseExportBlocks> ExportBlocks(
+            IMcpServer server,
+            RequestContext<CallToolRequestParams> context,
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the blocks")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
             [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
+            var startTime = DateTime.Now;
+            var progressToken = context.Params?.ProgressToken;
+            
             try
             {
-                var list = Portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath);
-                if (list != null)
+                // First, get the list of blocks to determine total count
+                Logger?.LogInformation($"Starting export of blocks from '{softwarePath}' to '{exportPath}'");
+                
+                var allBlocks = await Task.Run(() => Portal.GetBlocks(softwarePath, regexName));
+                var totalBlocks = allBlocks?.Count ?? 0;
+
+                if (totalBlocks == 0)
+                {
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = "No blocks found to export",
+                            progressToken
+                        });
+                    }
+                    
+                    return new ResponseExportBlocks
+                    {
+                        Message = $"No blocks found with regex '{regexName}' in '{softwarePath}'",
+                        Items = new List<ResponseBlockInfo>(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true,
+                            ["totalBlocks"] = 0,
+                            ["exportedBlocks"] = 0,
+                            ["duration"] = (DateTime.Now - startTime).TotalSeconds
+                        }
+                    };
+                }
+
+                // Send initial progress notification
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = 0,
+                        Total = totalBlocks,
+                        Message = $"Starting export of {totalBlocks} blocks...",
+                        progressToken
+                    });
+                }
+
+                // Export blocks asynchronously
+                var exportedBlocks = await Task.Run(() => Portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath));
+                
+                // Send progress update after export completion
+                if (exportedBlocks != null && progressToken != null)
+                {
+                    var exportedCount = exportedBlocks.Count();
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = exportedCount,
+                        Total = totalBlocks,
+                        Message = $"Exported {exportedCount} of {totalBlocks} blocks",
+                        progressToken
+                    });
+                }
+
+                if (exportedBlocks != null)
                 {
                     var responseList = new List<ResponseBlockInfo>();
-                    foreach (var block in list)
+                    var processedCount = 0;
+                    
+                    foreach (var block in exportedBlocks)
                     {
                         if (block != null)
                         {
@@ -879,27 +955,67 @@ namespace TiaMcpServer.ModelContextProtocol
                                 Description = block.ToString()
                             });
                         }
+                        processedCount++;
                     }
+
+                    // Send final progress notification
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = processedCount,
+                            Total = totalBlocks,
+                            Message = $"Export completed: {processedCount} blocks exported successfully",
+                            progressToken
+                        });
+                    }
+
+                    var duration = (DateTime.Now - startTime).TotalSeconds;
+                    Logger?.LogInformation($"Export completed: {processedCount} blocks exported in {duration:F2} seconds");
 
                     return new ResponseExportBlocks
                     {
-                        Message = $"Blocks with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Message = $"Export completed: {processedCount} blocks with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
                         Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
-                            ["success"] = true
+                            ["success"] = true,
+                            ["totalBlocks"] = totalBlocks,
+                            ["exportedBlocks"] = processedCount,
+                            ["duration"] = duration
                         }
                     };
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}");
+                    throw new McpException($"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex);
+                // Send error progress notification if we have a progress token
+                if (progressToken != null)
+                {
+                    try
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = $"Export failed: {ex.Message}",
+                            Error = true,
+                            progressToken
+                        });
+                    }
+                    catch
+                    {
+                        // Ignore notification errors during error handling
+                    }
+                }
+                
+                Logger?.LogError(ex, $"Failed exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}");
+                throw new McpException($"Unexpected error exporting blocks with '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -939,12 +1055,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving type info from '{typePath}' in '{softwarePath}'");
+                    throw new McpException($"Type not found at '{typePath}' in '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving type info from '{typePath}' in '{softwarePath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving type info from '{typePath}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -993,12 +1109,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed retrieving user defined types with regex '{regexName}' in '{softwarePath}'");
+                    throw new McpException($"Failed retrieving user defined types with regex '{regexName}' in '{softwarePath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed retrieving user defined types with regex '{regexName}' in '{softwarePath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error retrieving user defined types with regex '{regexName}' in '{softwarePath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1026,12 +1142,12 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed exporting type from '{typePath}' to '{exportPath}'");
+                    throw new McpException($"Failed exporting type from '{typePath}' to '{exportPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed exporting type from '{typePath}' to '{exportPath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error exporting type from '{typePath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1057,29 +1173,97 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed importing type from '{importPath}' to '{groupPath}'");
+                    throw new McpException($"Failed importing type from '{importPath}' to '{groupPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed importing type from '{importPath}' to '{groupPath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error importing type from '{importPath}' to '{groupPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
         [McpServerTool(Name = "ExportTypes"), Description("Export types from the plc software to path")]
-        public static ResponseExportTypes ExportTypes(
+        public static async Task<ResponseExportTypes> ExportTypes(
+            IMcpServer server,
+            RequestContext<CallToolRequestParams> context,
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the types")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
             [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
+            var startTime = DateTime.Now;
+            var progressToken = context.Params?.ProgressToken;
+            
             try
             {
-                var list = Portal.ExportTypes(softwarePath, exportPath, regexName, preservePath);
-                if (list != null)
+                // First, get the list of types to determine total count
+                Logger?.LogInformation($"Starting export of types from '{softwarePath}' to '{exportPath}'");
+                
+                var allTypes = await Task.Run(() => Portal.GetTypes(softwarePath, regexName));
+                var totalTypes = allTypes?.Count ?? 0;
+
+                if (totalTypes == 0)
+                {
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = "No types found to export",
+                            progressToken
+                        });
+                    }
+                    
+                    return new ResponseExportTypes
+                    {
+                        Message = $"No types found with regex '{regexName}' in '{softwarePath}'",
+                        Items = new List<ResponseTypeInfo>(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true,
+                            ["totalTypes"] = 0,
+                            ["exportedTypes"] = 0,
+                            ["duration"] = (DateTime.Now - startTime).TotalSeconds
+                        }
+                    };
+                }
+
+                // Send initial progress notification
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = 0,
+                        Total = totalTypes,
+                        Message = $"Starting export of {totalTypes} types...",
+                        progressToken
+                    });
+                }
+
+                // Export types asynchronously
+                var exportedTypes = await Task.Run(() => Portal.ExportTypes(softwarePath, exportPath, regexName, preservePath));
+                
+                // Send progress update after export completion
+                if (exportedTypes != null && progressToken != null)
+                {
+                    var exportedCount = exportedTypes.Count();
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = exportedCount,
+                        Total = totalTypes,
+                        Message = $"Exported {exportedCount} of {totalTypes} types",
+                        progressToken
+                    });
+                }
+
+                if (exportedTypes != null)
                 {
                     var responseList = new List<ResponseTypeInfo>();
-                    foreach (var type in list)
+                    var processedCount = 0;
+                    
+                    foreach (var type in exportedTypes)
                     {
                         if (type != null)
                         {
@@ -1097,27 +1281,67 @@ namespace TiaMcpServer.ModelContextProtocol
                                 Description = type.ToString()
                             });
                         }
+                        processedCount++;
                     }
+
+                    // Send final progress notification
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = processedCount,
+                            Total = totalTypes,
+                            Message = $"Export completed: {processedCount} types exported successfully",
+                            progressToken
+                        });
+                    }
+
+                    var duration = (DateTime.Now - startTime).TotalSeconds;
+                    Logger?.LogInformation($"Type export completed: {processedCount} types exported in {duration:F2} seconds");
 
                     return new ResponseExportTypes
                     {
-                        Message = $"Types with '{regexName}' from '{softwarePath}' to {exportPath} exported",
+                        Message = $"Export completed: {processedCount} types with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
                         Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
-                            ["success"] = true
+                            ["success"] = true,
+                            ["totalTypes"] = totalTypes,
+                            ["exportedTypes"] = processedCount,
+                            ["duration"] = duration
                         }
                     };
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}");
+                    throw new McpException($"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex);
+                // Send error progress notification if we have a progress token
+                if (progressToken != null)
+                {
+                    try
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = $"Type export failed: {ex.Message}",
+                            Error = true,
+                            progressToken
+                        });
+                    }
+                    catch
+                    {
+                        // Ignore notification errors during error handling
+                    }
+                }
+                
+                Logger?.LogError(ex, $"Failed exporting types '{regexName}' from '{softwarePath}' to {exportPath}");
+                throw new McpException($"Unexpected error exporting types '{regexName}' from '{softwarePath}' to {exportPath}: {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
@@ -1134,6 +1358,10 @@ namespace TiaMcpServer.ModelContextProtocol
         {
             try
             {
+                if (Engineering.TiaMajorVersion < 20)
+                {
+                    throw new McpException("ExportAsDocuments requires TIA Portal V20 or newer", McpErrorCode.InvalidParams);
+                }
                 if (Portal.ExportAsDocuments(softwarePath, blockPath, exportPath, preservePath))
                 {
                     return new ResponseExportAsDocuments
@@ -1148,35 +1376,107 @@ namespace TiaMcpServer.ModelContextProtocol
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}'");
+                    throw new McpException($"Failed exporting documents from '{blockPath}' to '{exportPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed exporting documents from '{blockPath}' to '{exportPath}': {ex.Message}", ex);
+                throw new McpException($"Unexpected error exporting documents from '{blockPath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
         }
 
         [McpServerTool(Name = "ExportBlocksAsDocuments"), Description("Export as documents (.s7dcl/.s7res) from blocks in the plc software to path")]
-        public static ResponseExportBlocksAsDocuments ExportBlocksAsDocuments(
+        public static async Task<ResponseExportBlocksAsDocuments> ExportBlocksAsDocuments(
+            IMcpServer server,
+            RequestContext<CallToolRequestParams> context,
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
             [Description("exportPath: defines the path where to export the documents")] string exportPath,
             [Description("regexName: defines the name or regular expression to find the block. Use empty string (default) to find all")] string regexName = "",
             [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
+            var startTime = DateTime.Now;
+            var progressToken = context.Params?.ProgressToken;
+            
             try
             {
-                var list = Portal.ExportBlocksAsDocuments(softwarePath, exportPath, regexName, preservePath);
-                if (list != null)
+                if (Engineering.TiaMajorVersion < 20)
                 {
-                    var respnseList = new List<ResponseBlockInfo>();
-                    foreach (var block in list)
+                    throw new McpException("ExportBlocksAsDocuments requires TIA Portal V20 or newer", McpErrorCode.InvalidParams);
+                }
+                // First, get the list of blocks to determine total count
+                Logger?.LogInformation($"Starting export of blocks as documents from '{softwarePath}' to '{exportPath}'");
+                
+                var allBlocks = await Task.Run(() => Portal.GetBlocks(softwarePath, regexName));
+                var totalBlocks = allBlocks?.Count ?? 0;
+
+                if (totalBlocks == 0)
+                {
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = "No blocks found to export as documents",
+                            progressToken
+                        });
+                    }
+                    
+                    return new ResponseExportBlocksAsDocuments
+                    {
+                        Message = $"No blocks found with regex '{regexName}' in '{softwarePath}'",
+                        Items = new List<ResponseBlockInfo>(),
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true,
+                            ["totalBlocks"] = 0,
+                            ["exportedBlocks"] = 0,
+                            ["duration"] = (DateTime.Now - startTime).TotalSeconds
+                        }
+                    };
+                }
+
+                // Send initial progress notification
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = 0,
+                        Total = totalBlocks,
+                        Message = $"Starting export of {totalBlocks} blocks as documents...",
+                        progressToken
+                    });
+                }
+
+                // Export blocks as documents asynchronously
+                var exportedBlocks = await Task.Run(() => Portal.ExportBlocksAsDocuments(softwarePath, exportPath, regexName, preservePath));
+                
+                // Send progress update after export completion
+                if (exportedBlocks != null && progressToken != null)
+                {
+                    var exportedCount = exportedBlocks.Count();
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = exportedCount,
+                        Total = totalBlocks,
+                        Message = $"Exported {exportedCount} of {totalBlocks} blocks as documents",
+                        progressToken
+                    });
+                }
+
+                if (exportedBlocks != null)
+                {
+                    var responseList = new List<ResponseBlockInfo>();
+                    var processedCount = 0;
+                    
+                    foreach (var block in exportedBlocks)
                     {
                         if (block != null)
                         {
                             var attributes = Helper.GetAttributeList(block);
 
-                            respnseList.Add(new ResponseBlockInfo
+                            responseList.Add(new ResponseBlockInfo
                             {
                                 Name = block.Name,
                                 TypeName = block.GetType().Name,
@@ -1191,30 +1491,336 @@ namespace TiaMcpServer.ModelContextProtocol
                                 Description = block.ToString()
                             });
                         }
+                        processedCount++;
                     }
+
+                    // Send final progress notification
+                    if (progressToken != null)
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = processedCount,
+                            Total = totalBlocks,
+                            Message = $"Document export completed: {processedCount} blocks exported successfully",
+                            progressToken
+                        });
+                    }
+
+                    var duration = (DateTime.Now - startTime).TotalSeconds;
+                    Logger?.LogInformation($"Document export completed: {processedCount} blocks exported in {duration:F2} seconds");
 
                     return new ResponseExportBlocksAsDocuments
                     {
-                        Message = $"Documents exported to '{exportPath}'",
-                        Items = respnseList,
+                        Message = $"Document export completed: {processedCount} blocks with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
+                        Items = responseList,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
-                            ["success"] = true
+                            ["success"] = true,
+                            ["totalBlocks"] = totalBlocks,
+                            ["exportedBlocks"] = processedCount,
+                            ["duration"] = duration
                         }
                     };
                 }
                 else
                 {
-                    throw new McpException(-32000, $"Failed exporting documents to '{exportPath}'");
+                    throw new McpException($"Failed exporting documents to '{exportPath}'", McpErrorCode.InternalError);
                 }
             }
             catch (Exception ex) when (ex is not McpException)
             {
-                throw new McpException(-32000, $"Failed exporting documents to '{exportPath}': {ex.Message}", ex);
+                // Send error progress notification if we have a progress token
+                if (progressToken != null)
+                {
+                    try
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = $"Document export failed: {ex.Message}",
+                            Error = true,
+                            progressToken
+                        });
+                    }
+                    catch
+                    {
+                        // Ignore notification errors during error handling
+                    }
+                }
+                
+                Logger?.LogError(ex, $"Failed exporting documents to '{exportPath}'");
+                throw new McpException($"Unexpected error exporting documents to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
             }
+        }
+
+        [McpServerTool(Name = "ImportFromDocuments"), Description("Import program block from SIMATIC SD documents (.s7dcl/.s7res) into PLC software (V20+)")]
+        public static ResponseImportFromDocuments ImportFromDocuments(
+            [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
+            [Description("groupPath: optional path within the PLC program where the block should be placed (empty for root)")] string groupPath,
+            [Description("importPath: directory containing the document files (.s7dcl/.s7res)")] string importPath,
+            [Description("fileNameWithoutExtension: name of the block file without extension") ] string fileNameWithoutExtension,
+            [Description("importOption: ImportDocumentOptions value (None, Override, SkipInactiveCultures, ActivateInactiveCultures)")] string importOption = "Override")
+        {
+            try
+            {
+                if (Engineering.TiaMajorVersion < 20)
+                {
+                    throw new McpException("ImportFromDocuments requires TIA Portal V20 or newer", McpErrorCode.InvalidParams);
+                }
+
+                var option = ParseImportDocumentOption(importOption);
+
+                // Pre-check .s7res for missing en-US tags
+                var warnings = new JsonArray();
+                try
+                {
+                    var missingIds = GetResMissingEnUsIds(importPath, fileNameWithoutExtension);
+                    if (missingIds != null && missingIds.Count > 0)
+                    {
+                        Logger?.LogWarning($".s7res for '{fileNameWithoutExtension}' missing en-US tags for {missingIds.Count} items: {string.Join(", ", missingIds)}");
+                        warnings.Add(new JsonObject
+                        {
+                            ["name"] = fileNameWithoutExtension,
+                            ["missingEnUsIds"] = new JsonArray(missingIds.Select(id => (JsonNode)id).ToArray())
+                        });
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Logger?.LogDebug(ex, "Failed to evaluate .s7res warnings");
+                }
+
+                var ok = Portal.ImportFromDocuments(softwarePath, groupPath, importPath, fileNameWithoutExtension, option);
+                if (ok)
+                {
+                    return new ResponseImportFromDocuments
+                    {
+                        Message = $"Imported '{fileNameWithoutExtension}' from '{importPath}'",
+                        Meta = new JsonObject
+                        {
+                            ["timestamp"] = DateTime.Now,
+                            ["success"] = true,
+                            ["warnings"] = warnings
+                        }
+                    };
+                }
+                else
+                {
+                    throw new McpException($"Failed importing '{fileNameWithoutExtension}' from '{importPath}'", McpErrorCode.InternalError);
+                }
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw new McpException($"Unexpected error importing from documents: {ex.Message}", ex, McpErrorCode.InternalError);
+            }
+        }
+
+        [McpServerTool(Name = "ImportBlocksFromDocuments"), Description("Import program blocks from SIMATIC SD documents (.s7dcl/.s7res) into PLC software (V20+)")]
+        public static async Task<ResponseImportBlocksFromDocuments> ImportBlocksFromDocuments(
+            IMcpServer server,
+            RequestContext<CallToolRequestParams> context,
+            [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
+            [Description("groupPath: optional path within the PLC program where the blocks should be placed (empty for root)")] string groupPath,
+            [Description("importPath: directory containing the document files (.s7dcl/.s7res)")] string importPath,
+            [Description("regexName: name or regular expression to select block files (empty for all)")] string regexName = "",
+            [Description("importOption: ImportDocumentOptions value (None, Override, SkipInactiveCultures, ActivateInactiveCultures)")] string importOption = "Override")
+        {
+            var startTime = DateTime.Now;
+            var progressToken = context.Params?.ProgressToken;
+
+            try
+            {
+                if (Engineering.TiaMajorVersion < 20)
+                {
+                    throw new McpException("ImportBlocksFromDocuments requires TIA Portal V20 or newer", McpErrorCode.InvalidParams);
+                }
+
+                // Determine total by scanning .s7dcl files matching regex
+                int total = 0;
+                var scanWarnings = new JsonArray();
+                try
+                {
+                    if (Directory.Exists(importPath))
+                    {
+                        var rx = string.IsNullOrWhiteSpace(regexName) ? null : new Regex(regexName, RegexOptions.Compiled);
+                        var files = Directory.GetFiles(importPath, "*.s7dcl", SearchOption.TopDirectoryOnly);
+                        foreach (var f in files)
+                        {
+                            var name = Path.GetFileNameWithoutExtension(f);
+                            if (rx != null && !rx.IsMatch(name))
+                                continue;
+                            total++;
+
+                            try
+                            {
+                                var missingIds = GetResMissingEnUsIds(importPath, name);
+                                if (missingIds != null && missingIds.Count > 0)
+                                {
+                                    scanWarnings.Add(new JsonObject
+                                    {
+                                        ["name"] = name,
+                                        ["missingEnUsIds"] = new JsonArray(missingIds.Select(id => (JsonNode)id).ToArray())
+                                    });
+                                }
+                            }
+                            catch { }
+                        }
+                    }
+                }
+                catch { /* ignore pre-scan errors */ }
+
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = 0,
+                        Total = total,
+                        Message = total > 0 ? $"Starting import of {total} blocks from documents..." : "Scanning import directory...",
+                        progressToken
+                    });
+                }
+
+                var option = ParseImportDocumentOption(importOption);
+                var imported = await Task.Run(() => Portal.ImportBlocksFromDocuments(softwarePath, groupPath, importPath, regexName, option));
+
+                var responseList = new List<ResponseBlockInfo>();
+                int processed = 0;
+                if (imported != null)
+                {
+                    foreach (var block in imported)
+                    {
+                        if (block != null)
+                        {
+                            var attributes = Helper.GetAttributeList(block);
+                            responseList.Add(new ResponseBlockInfo
+                            {
+                                Name = block.Name,
+                                TypeName = block.GetType().Name,
+                                Namespace = block.Namespace,
+                                ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage), block.ProgrammingLanguage),
+                                MemoryLayout = Enum.GetName(typeof(MemoryLayout), block.MemoryLayout),
+                                IsConsistent = block.IsConsistent,
+                                HeaderName = block.HeaderName,
+                                ModifiedDate = block.ModifiedDate,
+                                IsKnowHowProtected = block.IsKnowHowProtected,
+                                Attributes = attributes,
+                                Description = block.ToString()
+                            });
+                        }
+                        processed++;
+                    }
+                }
+
+                if (progressToken != null)
+                {
+                    await server.SendNotificationAsync("notifications/progress", new
+                    {
+                        Progress = processed,
+                        Total = total,
+                        Message = $"Document import completed: {processed} blocks imported successfully",
+                        progressToken
+                    });
+                }
+
+                var duration = (DateTime.Now - startTime).TotalSeconds;
+                Logger?.LogInformation($"Document import completed: {processed} blocks imported in {duration:F2} seconds");
+
+                return new ResponseImportBlocksFromDocuments
+                {
+                    Message = $"Document import completed: {processed} blocks imported from '{importPath}'",
+                    Items = responseList,
+                    Meta = new JsonObject
+                    {
+                        ["timestamp"] = DateTime.Now,
+                        ["success"] = true,
+                        ["totalBlocks"] = total,
+                        ["importedBlocks"] = processed,
+                        ["duration"] = duration,
+                        ["warnings"] = scanWarnings
+                    }
+                };
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                if (progressToken != null)
+                {
+                    try
+                    {
+                        await server.SendNotificationAsync("notifications/progress", new
+                        {
+                            Progress = 0,
+                            Total = 0,
+                            Message = $"Document import failed: {ex.Message}",
+                            Error = true,
+                            progressToken
+                        });
+                    }
+                    catch { }
+                }
+
+                Logger?.LogError(ex, $"Failed importing documents from '{importPath}'");
+                throw new McpException($"Unexpected error importing documents from '{importPath}': {ex.Message}", ex, McpErrorCode.InternalError);
+            }
+        }
+
+        private static ImportDocumentOptions ParseImportDocumentOption(string option)
+        {
+            if (string.IsNullOrWhiteSpace(option)) return ImportDocumentOptions.Override;
+
+            var normalized = option.Trim();
+
+            // Primary: accept exact enum names (case-insensitive)
+            if (Enum.TryParse<ImportDocumentOptions>(normalized, ignoreCase: true, out var parsed))
+            {
+                return parsed;
+            }
+
+            // Aliases and common misspellings
+            switch (normalized.ToLowerInvariant())
+            {
+                case "override": return ImportDocumentOptions.Override;
+                case "none": return ImportDocumentOptions.None;
+                case "skipinactiveculture":
+                case "skipinactivecultures":
+                case "skipinactive":
+                case "skipinactivecult":
+                    return ImportDocumentOptions.SkipInactiveCultures;
+                case "activeinactiveculture":
+                case "activateinactivecultures":
+                case "activeinactivecultures":
+                case "activateinactive":
+                    return ImportDocumentOptions.ActivateInactiveCultures;
+                default:
+                    throw new McpException($"Invalid importOption '{option}'. Allowed: None, Override, SkipInactiveCultures, ActivateInactiveCultures", McpErrorCode.InvalidParams);
+            }
+        }
+
+        private static List<string> GetResMissingEnUsIds(string directory, string baseName)
+        {
+            var resPath = Path.Combine(directory, baseName + ".s7res");
+            var missing = new List<string>();
+            if (!File.Exists(resPath))
+            {
+                return missing;
+            }
+            var xdoc = XDocument.Load(resPath);
+            XNamespace ns = xdoc.Root?.Name.Namespace ?? XNamespace.None;
+            foreach (var comment in xdoc.Descendants(ns + "Comment"))
+            {
+                var hasEnUs = comment.Elements(ns + "MultiLanguageText")
+                                     .Any(e => string.Equals((string?)e.Attribute("Lang"), "en-US", StringComparison.OrdinalIgnoreCase));
+                if (!hasEnUs)
+                {
+                    var id = (string?)comment.Attribute("Id") ?? "";
+                    missing.Add(id);
+                }
+            }
+            return missing;
         }
 
         #endregion
     }
 }
+

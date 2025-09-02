@@ -1091,14 +1091,19 @@ namespace TiaMcpServer.Siemens
                             {
                                 File.Delete(path);
                             }
-                            block.Export(new FileInfo(path), ExportOptions.None);
 
-                            exportList.Add(block);
+                            if (block.IsConsistent) 
+                            {
+                                block.Export(new FileInfo(path), ExportOptions.None);
+
+                                exportList.Add(block);
+                            }
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             // Console.WriteLine($"Error exporting block '{block.Name}': {ex.Message}");
-                            continue;
+                            // continue;
+                            throw new Exception($"Exception at block '{block.Name}'. {ex.Message}");
                         }
                     }
                 }
@@ -1153,14 +1158,19 @@ namespace TiaMcpServer.Siemens
                                 File.Delete(path);
                             }
 
-                            type.Export(new FileInfo(path), ExportOptions.None);
+                            if(type.IsConsistent)
+                            {
+                                type.Export(new FileInfo(path), ExportOptions.None);
 
-                            exportList.Add(type);
+                                exportList.Add(type);
+                            }
+
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             // Console.WriteLine($"Error exporting user defined type '{type.Name}': {ex.Message}");
-                            continue;
+                            // continue;
+                            throw new Exception($"Exception at type '{type.Name}'. {ex.Message}");
                         }
                     }
                 }
@@ -1183,6 +1193,12 @@ namespace TiaMcpServer.Siemens
 
             if (IsProjectNull())
             {
+                return false;
+            }
+
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ExportAsDocuments is only supported on TIA Portal V20 or newer");
                 return false;
             }
 
@@ -1242,14 +1258,16 @@ namespace TiaMcpServer.Siemens
                                 success = true;
                             }
                         }
-                        catch (EngineeringNotSupportedException)
+                        catch (EngineeringNotSupportedException ex)
                         {
                             // The export or import of blocks with mixed programming languages is not possible
                             // Console.WriteLine($"Error exporting block as document: {ex.Message}");
+                            throw new Exception($"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}");
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
                             // Console.WriteLine($"Error creating export directory: {ex.Message}");
+                            throw new Exception($"Exception at block '{blockName}'. {ex.Message}");
                         }
 
                     }
@@ -1272,6 +1290,12 @@ namespace TiaMcpServer.Siemens
 
             if (IsProjectNull())
             {
+                return null;
+            }
+
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ExportBlocksAsDocuments is only supported on TIA Portal V20 or newer");
                 return null;
             }
 
@@ -1313,6 +1337,139 @@ namespace TiaMcpServer.Siemens
             }
 
             return exportList;
+        }
+
+        public bool ImportFromDocuments(string softwarePath, string groupPath, string importPath, string fileNameWithoutExtension, ImportDocumentOptions option)
+        {
+            _logger?.LogInformation($"Importing block from documents: {fileNameWithoutExtension} in {importPath}");
+
+            if (IsProjectNull())
+            {
+                return false;
+            }
+
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ImportFromDocuments is only supported on TIA Portal V20 or newer");
+                return false;
+            }
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+                    var dir = new DirectoryInfo(importPath);
+                    if (!dir.Exists)
+                    {
+                        _logger?.LogWarning($"Import directory does not exist: {importPath}");
+                        return false;
+                    }
+
+                    DocumentImportResult? result = null;
+                    try
+                    {
+                        result = (group != null)
+                            ? group.Blocks.ImportFromDocuments(dir, fileNameWithoutExtension, option)
+                            : plcSoftware.BlockGroup.Blocks.ImportFromDocuments(dir, fileNameWithoutExtension, option);
+                    }
+                    catch (EngineeringNotSupportedException ex)
+                    {
+                        throw new Exception($"EngineeringNotSupportedException at file '{fileNameWithoutExtension}'. {ex.Message}");
+                    }
+
+                    if (result != null && result.State == DocumentResultState.Success)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error importing block from documents");
+            }
+            return false;
+        }
+
+        public IEnumerable<PlcBlock>? ImportBlocksFromDocuments(string softwarePath, string groupPath, string importPath, string regexName, ImportDocumentOptions option, bool preservePath = false)
+        {
+            _logger?.LogInformation($"Importing blocks from documents in {importPath} with regex '{regexName}'");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ImportBlocksFromDocuments is only supported on TIA Portal V20 or newer");
+                return null;
+            }
+
+            var imported = new List<PlcBlock>();
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+                    var dir = new DirectoryInfo(importPath);
+                    if (!dir.Exists)
+                    {
+                        _logger?.LogWarning($"Import directory does not exist: {importPath}");
+                        return imported;
+                    }
+
+                    var rx = string.IsNullOrWhiteSpace(regexName)
+                        ? null
+                        : new Regex(regexName, RegexOptions.Compiled);
+
+                    // Consider .s7dcl as the primary index; .s7res is optional supplemental
+                    var files = dir.GetFiles("*.s7dcl", SearchOption.TopDirectoryOnly);
+                    foreach (var file in files)
+                    {
+                        var name = Path.GetFileNameWithoutExtension(file.Name);
+                        if (rx != null && !rx.IsMatch(name))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            var result = (group != null)
+                                ? group.Blocks.ImportFromDocuments(dir, name, option)
+                                : plcSoftware.BlockGroup.Blocks.ImportFromDocuments(dir, name, option);
+
+                            if (result != null && result.State == DocumentResultState.Success && result.ImportedPlcBlocks != null)
+                            {
+                                foreach (var blk in result.ImportedPlcBlocks)
+                                {
+                                    if (blk != null)
+                                    {
+                                        imported.Add(blk);
+                                    }
+                                }
+                            }
+                        }
+                        catch (EngineeringNotSupportedException)
+                        {
+                            // mixed languages etc.; skip but continue batch
+                        }
+                        catch (Exception)
+                        {
+                            // skip problematic item, continue
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error importing blocks from documents");
+            }
+
+            return imported;
         }
 
         #endregion
@@ -1614,7 +1771,7 @@ namespace TiaMcpServer.Siemens
                     // Add types section
                     if (hasTypes)
                     {
-                        sections.Add(() => GetSoftwareTreeTypeGroup(sb, plcSoftware.TypeGroup, ancestorStates, "User-defined data types", true));
+                        sections.Add(() => GetSoftwareTreeTypeGroup(sb, plcSoftware.TypeGroup, ancestorStates, "PLC data types", true));
                     }
                     
                     
@@ -1640,7 +1797,7 @@ namespace TiaMcpServer.Siemens
         
         private void GetSoftwareTreeBlockGroup(StringBuilder sb, PlcBlockGroup blockGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
         {
-            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel} [Collection]");
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel}"); // [Collection]
             var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
             
             // Get blocks in this group
@@ -1653,8 +1810,12 @@ namespace TiaMcpServer.Siemens
                 var block = blocks[i];
                 // Block is last only if it's the last block AND there are no subgroups following
                 var isLastBlock = (i == blocks.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
+
+                var blockTypeName = new[] { "ArrayDB", "GlobalDB", "InstanceDB" }.Contains(block.GetType().Name)
+                    ? "DB"
+                    : block.GetType().Name;
+
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastBlock)}{block.Name} [{blockTypeName}{block.Number}, {block.ProgrammingLanguage}]");
             }
             
             // Then, add all subgroups recursively
@@ -1663,8 +1824,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name} [Block Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name}"); // [Block Group]
+
                 var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
                 GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
             }
@@ -1682,8 +1843,12 @@ namespace TiaMcpServer.Siemens
                 var block = blocks[i];
                 // Block is last only if it's the last block AND there are no subgroups following
                 var isLastBlock = (i == blocks.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastBlock)}{block.Name} [{block.GetType().Name}] - {block.ProgrammingLanguage}");
+
+                var blockTypeName = new[] { "ArrayDB", "GlobalDB", "InstanceDB" }.Contains(block.GetType().Name)
+                    ? "DB"
+                    : block.GetType().Name;
+
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastBlock)}{block.Name} [{blockTypeName}{block.Number}, {block.ProgrammingLanguage}]");
             }
             
             // Then, add all subgroups recursively
@@ -1692,8 +1857,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name} [Block Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name}"); // [Block Group]
+
                 var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
                 GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
             }
@@ -1702,7 +1867,7 @@ namespace TiaMcpServer.Siemens
         private void GetSoftwareTreeTypeGroup(StringBuilder sb, PlcTypeGroup typeGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
         {
             
-            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel} [Collection]");
+            sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel}"); // [Collection]
             var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
             
             // Get types in this group
@@ -1715,8 +1880,11 @@ namespace TiaMcpServer.Siemens
                 var type = types[i];
                 // Type is last only if it's the last type AND there are no subgroups following
                 var isLastType = (i == types.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
+
+                var typeTypeName = type.GetType().Name;
+                typeTypeName = typeTypeName=="PlcStruct" ? "UDT": typeTypeName;
+
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastType)}{type.Name} [{typeTypeName}]");
             }
             
             // Then, add all subgroups recursively
@@ -1725,8 +1893,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name} [Type Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name}"); // [Type Group]
+
                 var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
                 GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
             }
@@ -1744,8 +1912,11 @@ namespace TiaMcpServer.Siemens
                 var type = types[i];
                 // Type is last only if it's the last type AND there are no subgroups following
                 var isLastType = (i == types.Count - 1) && (subGroups.Count == 0);
-                
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastType)}{type.Name} [{type.GetType().Name}]");
+
+                var typeTypeName = type.GetType().Name;
+                typeTypeName = typeTypeName == "PlcStruct" ? "UDT" : typeTypeName;
+
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastType)}{type.Name} [{typeTypeName}]");
             }
             
             // Then, add all subgroups recursively
@@ -1754,8 +1925,8 @@ namespace TiaMcpServer.Siemens
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
                 
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name} [Type Group]");
-                
+                sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name}"); // [Type Group]
+
                 var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
                 GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
             }

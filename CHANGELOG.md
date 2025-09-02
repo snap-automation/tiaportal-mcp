@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.0.16] - 2025-09-02
+
+- New: ImportFromDocuments and ImportBlocksFromDocuments (V20+)
+- Guard: Version checks for export/import as documents (V20+)
+- UX: Pre-check .s7res for missing en-US tags; warnings surfaced in responses
+- Docs: README updates, prompts note V20+ and known LAD en-US limitation
+- Refactor: Updated all McpException throws to SDK signature with McpErrorCode
+- Chore: Added TODOs for tests/docs
+
+## [0.0.15] - 2025-08-30
+
+- prompts improved
+- long running tasks as async tasks
+
 ## [0.0.14] - 2025-08-18
 
 - better structure/tree format
@@ -59,3 +73,4 @@
 ## [0.0.3] - 2025-06-23
 
 - Release on Visual Studio Code Narketplace
+

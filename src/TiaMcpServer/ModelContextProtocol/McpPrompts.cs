@@ -1,4 +1,4 @@
-﻿using ModelContextProtocol.Server;
+using ModelContextProtocol.Server;
 using System.ComponentModel;
 
 namespace TiaMcpServer.ModelContextProtocol
@@ -8,35 +8,44 @@ namespace TiaMcpServer.ModelContextProtocol
     {
         #region Basic Connection Templates
 
-        [McpServerPrompt(Name = "ConnectToPortal"), Description("Connect to TIA Portal")]
-        public static string ConnectToPortal()
+        [McpServerPrompt(Name = "Connect"), Description("Connect to TIA Portal")]
+        public static string Connect()
         {
-            return @"Connect to TIA Portal using the MCP server.
+            return @"Connect to TIA Portal.
+
 This will establish a connection to either a running TIA Portal instance or start a new one.
-Use the connect_portal tool to initiate the connection.";
+
+Use the Connect tool to initiate the connection.";
         }
 
         [McpServerPrompt(Name = "OpenProject"), Description("Open a TIA Portal project")]
         public static string OpenProject(string projectPath)
         {
-            return $@"Open the TIA Portal project located at: {projectPath}
-Make sure to provide the full path to the project file (.ap18, .ap19, .ap20, etc.) or local session file (.als18, .als19, .als20, etc.).
-Use the open_project tool with the specified path.";
+            return $@"Open the TIA Portal project.
+
+Common parameter values:
+- projectPath: the full path to the project file (.ap18, .ap19, .ap20, etc.) or local session file (.als18, .als19, .als20, etc.).
+
+Use the OpenProject tool with this parameter:
+- projectPath: {projectPath}""";
         }
 
         [McpServerPrompt(Name = "CloseProject"), Description("Close the currently open TIA Portal project")]
         public static string CloseProject()
         {
             return @"Close the currently open TIA Portal project.
+
 This will close the active project and return TIA Portal to the main screen.
-Use the close_project tool to close the current project.";
+
+Use the CloseProject tool to close the current project.";
         }
 
-        [McpServerPrompt(Name = "DisconnectFromPortal"), Description("Disconnect from TIA Portal")]
-        public static string DisconnectFromPortal()
+        [McpServerPrompt(Name = "Disconnect"), Description("Disconnect from TIA Portal")]
+        public static string Disconnect()
         {
-            return @"Disconnect from TIA Portal using the MCP server.
-This will remove the connection to running TIA Portal instance.";
+            return @"Disconnect from TIA Portal.
+
+Use the Disconnect tool to remove the connection.";
         }
 
         #endregion
@@ -47,27 +56,31 @@ This will remove the connection to running TIA Portal instance.";
         public static string GetProjectTree()
         {
             return @"Retrieve the complete structure of the current TIA Portal project.
-This will show all devices, device items, groups, and PLC/HMI software in a hierarchical tree format.
+
+The hierarchical tree will display:
+- All devices
+- Device items
+- Groups
+- PLC/HMI software
+
 Use the GetProjectTree tool to display the project organization and locate software paths for other operations.";
         }
 
         [McpServerPrompt(Name = "GetSoftwareTree"), Description("Get the structure/tree of a specific PLC software showing blocks and types")]
         public static string GetSoftwareTree(string softwarePath)
         {
-            return $@"Retrieve the complete structure of PLC software at: {softwarePath}
-This will show all function and data blocks, user-defined data types, and their group hierarchy in a tree format.
+            return $@"Retrieve the complete structure of PLC software.
 
-Examples for 'softwarePath' parameter:
-- PLC_1: For hardware PLC software
-- PC-System_1/Software PLC_1: For PC based PLC software
-- Check project structure first using GetProjectTree to find the correct software path
-
-The tree will display:
+The hierarchical tree will display:
 - Function (OB, FB, FC) and data (ArrayDB, GlobalDB, InstanceDB) blocks (organized by groups and subgroups)
 - User-defined data types (organized by groups and subgroups)
 - Hierarchical organization with proper tree formatting
 
-Use the GetSoftwareTree tool with the 'softwarePath' parameter to explore the internal structure of PLC software.";
+Common parameter values:
+- softwarePath: normally something like 'PLC_1' for hardware PLC, 'PC-System_1/Software PLC_1' for PC based PLC
+
+Use the GetSoftwareTree tool with these parameters:
+- softwarePath: {softwarePath}";
         }
 
         #endregion
@@ -77,16 +90,15 @@ Use the GetSoftwareTree tool with the 'softwarePath' parameter to explore the in
         [McpServerPrompt(Name = "ExportBlocks"), Description("Export blocks from PLC software")]
         public static string ExportBlocks(string softwarePath, string exportPath, string regexName, bool preservePath)
         {
-            return $@"Export blocks from PLC software at: {softwarePath}
-Export to directory: {exportPath}
-{(string.IsNullOrEmpty(regexName) ? "Export all blocks" : $"Filter blocks using regex pattern: {regexName}")}
-{(preservePath ? "Preserve original folder structure" : "Export to flat structure")}
+            return $@"Export blocks from PLC software.
 
 Common parameter values:
-- regexPattern: Use empty string """" for all blocks, or patterns like ""FB_.*"" for function blocks
+- softwarePath: normally something like 'PLC_1' for hardware PLC, 'PC-System_1/Software PLC_1' for PC based PLC
+- exportPath: '${{workspacefolder}}/export/Program blocks' is a good default
+- regexName: Use empty string """" for all blocks, or patterns like ""FB_.*"" for function blocks
 - preservePath: Use false for flat export, true to maintain folder structure
 
-Use the export_blocks tool with these parameters:
+Use the ExportBlocks tool with these parameters:
 - softwarePath: {softwarePath}
 - exportPath: {exportPath}
 - regexName: {regexName}
@@ -96,12 +108,15 @@ Use the export_blocks tool with these parameters:
         [McpServerPrompt(Name = "ExportTypes"), Description("Export types from PLC software")]
         public static string ExportTypes(string softwarePath, string exportPath, string regexName, bool preservePath)
         {
-            return $@"Export user-defined types from PLC software at: {softwarePath}
-Export to directory: {exportPath}
-{(string.IsNullOrEmpty(regexName) ? "Export all types" : $"Filter types using regex pattern: {regexName}")}
-{(preservePath ? "Preserve original folder structure" : "Export to flat structure")}
+            return $@"Export user-defined types from PLC software.
 
-Use the export_types tool with these parameters:
+Common parameter values:
+- softwarePath: normally something like 'PLC_1' for hardware PLC, 'PC-System_1/Software PLC_1' for PC based PLC
+- exportPath: '${{workspacefolder}}/export/Plc data types' is a good default
+- regexName: Use empty string """" for all types, or patterns like ""Typ_.*""
+- preservePath: Use false for flat export, true to maintain folder structure
+
+Use the ExportTypes tool with these parameters:
 - softwarePath: {softwarePath}
 - exportPath: {exportPath}
 - regexName: {regexName}
@@ -111,13 +126,16 @@ Use the export_types tool with these parameters:
         [McpServerPrompt(Name = "ExportBlocksAsDocuments"), Description("Export blocks as documents (.s7dcl/.s7res format)")]
         public static string ExportBlocksAsDocuments(string softwarePath, string exportPath, string regexName, bool preservePath)
         {
-            return $@"Export blocks as SIMATIC SD documents (.s7dcl/.s7res format) from PLC software at: {softwarePath}
-Export to directory: {exportPath}
-{(string.IsNullOrEmpty(regexName) ? "Export all blocks as documents" : $"Filter blocks using regex pattern: {regexName}")}
-{(preservePath ? "Preserve original folder structure" : "Export to flat structure")}
-This format is useful for documentation and external tools that work with SIMATIC SD format.
+            return $@"Export blocks as SIMATIC SD documents (.s7dcl/.s7res format) from PLC software.
+Requires TIA Portal V20 or newer.
 
-Use the export_blocks_as_documents tool with these parameters:
+Common parameter values:
+- softwarePath: normally something like 'PLC_1' for hardware PLC, 'PC-System_1/Software PLC_1' for PC based PLC
+- exportPath: '${{workspacefolder}}/export/Plc' is a good default
+- regexName: Use empty string """" for all blocks, or patterns like ""FB_.*""
+- preservePath: Use false for flat export, true to maintain folder structure
+
+Use the ExportBlocksAsDocuments tool with these parameters:
 - softwarePath: {softwarePath}
 - exportPath: {exportPath}
 - regexName: {regexName}
@@ -128,42 +146,91 @@ Use the export_blocks_as_documents tool with these parameters:
 
         #region Convenience Export Templates
 
-        [McpServerPrompt(Name = "ExportAllBlocksFlattened"), Description("Export all blocks from PLC software (flat structure)")]
+        [McpServerPrompt(Name = "ExportAllBlocksFlattened"), Description("Export all blocks from PLC software (flattened)")]
         public static string ExportAllBlocksFlattened(string softwarePath, string exportPath)
         {
             return ExportBlocks(softwarePath, exportPath, "", false);
         }
 
-        [McpServerPrompt(Name = "ExportAllBlocksStructured"), Description("Export all blocks from PLC software (preserve folder structure)")]
+        [McpServerPrompt(Name = "ExportAllBlocksStructured"), Description("Export all blocks from PLC software (structured)")]
         public static string ExportAllBlocksStructured(string softwarePath, string exportPath)
         {
             return ExportBlocks(softwarePath, exportPath, "", true);
         }
 
-        [McpServerPrompt(Name = "ExportAllTypesFlattened"), Description("Export all types from PLC software (flat structure)")]
+        [McpServerPrompt(Name = "ExportAllTypesFlattened"), Description("Export all types from PLC software (flattened)")]
         public static string ExportAllTypesFlattened(string softwarePath, string exportPath)
         {
             return ExportTypes(softwarePath, exportPath, "", false);
         }
 
-        [McpServerPrompt(Name = "ExportAllTypesStructured"), Description("Export all types from PLC software (preserve folder structure)")]
+        [McpServerPrompt(Name = "ExportAllTypesStructured"), Description("Export all types from PLC software (structured)")]
         public static string ExportAllTypesStructured(string softwarePath, string exportPath)
         {
             return ExportTypes(softwarePath, exportPath, "", true);
         }
 
-        [McpServerPrompt(Name = "ExportAllBlocksAsDocumentsFlattened"), Description("Export all blocks as documents from PLC software (flat structure)")]
+        [McpServerPrompt(Name = "ExportAllBlocksAsDocumentsFlattened"), Description("Export all blocks as documents from PLC software (flattened)")]
         public static string ExportAllBlocksAsDocumentsFlattened(string softwarePath, string exportPath)
         {
             return ExportBlocksAsDocuments(softwarePath, exportPath, "", false);
         }
 
-        [McpServerPrompt(Name = "ExportAllBlocksAsDocumentsStructured"), Description("Export all blocks as documents from PLC software (preserve folder structure)")]
+        [McpServerPrompt(Name = "ExportAllBlocksAsDocumentsStructured"), Description("Export all blocks as documents from PLC software (structured)")]
         public static string ExportAllBlocksAsDocumentsStructured(string softwarePath, string exportPath)
         {
             return ExportBlocksAsDocuments(softwarePath, exportPath, "", true);
         }
 
         #endregion
+
+        #region Import From Documents Templates
+
+        [McpServerPrompt(Name = "ImportFromDocuments"), Description("Import a single block from SIMATIC SD documents (.s7dcl/.s7res) (V20+)")]
+        public static string ImportFromDocuments(string softwarePath, string groupPath, string importPath, string fileNameWithoutExtension, string importOption)
+        {
+            return $@"Import a single program block from SIMATIC SD documents into PLC software (requires TIA Portal V20 or newer).
+
+Common parameter values:
+- softwarePath: e.g. 'PLC_1' for hardware PLC
+- groupPath: optional, e.g. 'Program blocks/FBs'
+- importPath: folder containing .s7dcl/.s7res files
+- fileNameWithoutExtension: e.g. 'FC_DateTime'
+- importOption: 'Override' (default), 'None', 'SkipInactiveCultures', 'ActivateInactiveCultures'
+
+Note: As of 2025-09-02, importing Ladder (LAD) blocks requires the companion .s7res to contain en-US tags for all items; otherwise import may fail.
+
+Use the ImportFromDocuments tool with these parameters:
+- softwarePath: {softwarePath}
+- groupPath: {groupPath}
+- importPath: {importPath}
+- fileNameWithoutExtension: {fileNameWithoutExtension}
+- importOption: {importOption}";
+        }
+
+        [McpServerPrompt(Name = "ImportBlocksFromDocuments"), Description("Import blocks from SIMATIC SD documents (.s7dcl/.s7res) (V20+)")]
+        public static string ImportBlocksFromDocuments(string softwarePath, string groupPath, string importPath, string regexName, string importOption)
+        {
+            return $@"Import multiple program blocks from SIMATIC SD documents into PLC software (requires TIA Portal V20 or newer).
+
+Common parameter values:
+- softwarePath: e.g. 'PLC_1' for hardware PLC
+- groupPath: optional target group path, empty for root
+- importPath: folder containing .s7dcl/.s7res files
+- regexName: empty for all, or e.g. 'FB_.*'
+- importOption: 'Override' (default), 'None', 'SkipInactiveCultures', 'ActivateInactiveCultures'
+
+Note: As of 2025-09-02, importing Ladder (LAD) blocks requires the companion .s7res to contain en-US tags for all items; otherwise import may fail.
+
+Use the ImportBlocksFromDocuments tool with these parameters:
+- softwarePath: {softwarePath}
+- groupPath: {groupPath}
+- importPath: {importPath}
+- regexName: {regexName}
+- importOption: {importOption}";
+        }
+
+        #endregion
     }
 }
+

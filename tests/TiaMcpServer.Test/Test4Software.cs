@@ -206,7 +206,7 @@ namespace TiaMcpServer.Test
             {
                 try
                 {
-                    Console.WriteLine($"- {block.GetType().Name}, {block.Name}");
+                    Console.WriteLine($"- {block.GetType().Name}, {block.Name}, IsConsistent='{block.IsConsistent}', MemoryLayout='{block.MemoryLayout}'");
                 }
                 catch (Exception ex)
                 {
