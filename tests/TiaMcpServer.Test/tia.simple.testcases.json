@@ -122,6 +122,28 @@
         "exportPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0",
         "preservePath": true
       }
+    ],
+    "ImportBlock": [
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "0_OBs",
+        "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\0_OBs\\Main_1.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "1_Tests",
+        "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\1_Tests\\FC_Block_1.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "1_Tests",
+        "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\1_Tests\\DB_Block_1.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "Common/CarrierRegister",
+        "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\Common\\CarrierRegister\\GLOBAL_POSITIONING.xml"
+      }
     ]
   },
   {

@@ -291,25 +291,30 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "0_OBs", Settings.Project1ExportPath0 + "\\0_OBs\\Main_1.xml")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "1_Tests", Settings.Project1ExportPath0 + "\\1_Tests\\FC_Block_1.xml")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "1_Tests", Settings.Project1ExportPath0 + "\\1_Tests\\DB_Block_1.xml")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister", Settings.Project1ExportPath0 + "\\Common\\CarrierRegister\\GLOBAL_POSITIONING.xml")]
-        public void Test_415_ImportBlock(string projectPath, string softwarePath, string groupPath, string importPath)
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "0_OBs", Settings.Project1ExportPath0 + "\\0_OBs\\Main_1.xml")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "1_Tests", Settings.Project1ExportPath0 + "\\1_Tests\\FC_Block_1.xml")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "1_Tests", Settings.Project1ExportPath0 + "\\1_Tests\\DB_Block_1.xml")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister", Settings.Project1ExportPath0 + "\\Common\\CarrierRegister\\GLOBAL_POSITIONING.xml")]
+        [DynamicData(nameof(TiaTestCases.GetImportBlockDataSource), typeof(TiaTestCases))]
+        public void Test_415_ImportBlock(SimpleTiaTestCase testCase, ImportBlockInfo importBlockInfo)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
-            var result = _portal.ImportBlock(softwarePath, groupPath, importPath);
+            var result = _portal.ImportBlock(importBlockInfo.softwarePath, importBlockInfo.groupPath, importBlockInfo.importPath);
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Assert.IsTrue(result, "Failed to import code block");
         }
+        
 
         [TestMethod]
         [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "Common/CarrierRegister/ML_SubstratState", true)]
