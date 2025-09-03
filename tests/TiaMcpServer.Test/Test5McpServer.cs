@@ -203,16 +203,19 @@ namespace TiaMcpServer.Test
 
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "0_OBs/Main_1")]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "0_OBs/Main_1")]
-        public void Test_508_McpServer_GetBlockInfo(string projectPath, string softwarePath, string blockPath)
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "0_OBs/Main_1")]
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, "0_OBs/Main_1")]
+        [DynamicData(nameof(TiaTestCases.GetBlockDataSource), typeof(TiaTestCases))]
+        public void Test_508_McpServer_GetBlockInfo(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftwareInfo, string blockPath)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
             McpServer.Connect();
-            McpServer.OpenProject(projectPath);
+            McpServer.OpenProject(testCase.ProjectPath);
 
             var success = true;
-            var response = McpServer.GetBlockInfo(softwarePath, blockPath);
+            var response = McpServer.GetBlockInfo(plcSoftwareInfo.Path, blockPath);
             WriteMessage("McpServer.GetBlockInfo()", response);
 
             McpServer.CloseProject();
