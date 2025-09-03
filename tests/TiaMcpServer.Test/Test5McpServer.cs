@@ -37,13 +37,16 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath)]
-        [DataRow(Settings.Session1ProjectPath)]
-        public void Test_501_McpServer_GetProjectTree(string projectPath)
+        //[DataRow(Settings.Project1ProjectPath)]
+        //[DataRow(Settings.Session1ProjectPath)]
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_501_McpServer_GetProjectTree(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
             McpServer.Connect();
-            McpServer.OpenProject(projectPath);
+            McpServer.OpenProject(testCase.ProjectPath);
 
             var success = true;
             var response = McpServer.GetProjectTree();
