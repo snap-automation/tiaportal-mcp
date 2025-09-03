@@ -22,12 +22,15 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath)]
-        [DataRow(Settings.Session1ProjectPath)]
-        public void Test_500_McpServer_OpenCloseProject(string projectPath)
+        //[DataRow(Settings.Project1ProjectPath)]
+        //[DataRow(Settings.Session1ProjectPath)]
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_500_McpServer_OpenCloseProject(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
-            McpServer.OpenProject(projectPath);
+            McpServer.OpenProject(testCase.ProjectPath);
 
             var success = true;
             var response = McpServer.CloseProject();
