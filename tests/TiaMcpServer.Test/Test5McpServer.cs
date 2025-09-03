@@ -160,13 +160,16 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, "HMI_0")]
-        [DataRow(Settings.Session1ProjectPath, "PC-System_1")]
-        public void Test_506_McpServer_GetDeviceInfo(string projectPath, string devicePath)
+        //[DataRow(Settings.Project1ProjectPath, "HMI_0")]
+        //[DataRow(Settings.Session1ProjectPath, "PC-System_1")]
+        [DynamicData(nameof(TiaTestCases.GetDeviceDataSource), typeof(TiaTestCases))]
+        public void Test_506_McpServer_GetDeviceInfo(SimpleTiaTestCase testCase, string devicePath)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
             McpServer.Connect();
-            McpServer.OpenProject(projectPath);
+            McpServer.OpenProject(testCase.ProjectPath);
 
             var success = true;
             var response = McpServer.GetDeviceInfo(devicePath);

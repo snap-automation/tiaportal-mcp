@@ -270,7 +270,9 @@
     "MultiUser": true,
     "ProjectPath": "D:\\Siemens\\Sessions\\TestSession1_LS_1\\TestSession1_LS_1.als20",
     "ExportRoot": "D:\\Temp\\TIA-Portal\\TestSession1",
-    "DevicePaths": [],
+    "DevicePaths": [
+      "PC-System_1"
+    ],
     "DeviceItemPaths": [],
     "BlockPaths": [
       {
