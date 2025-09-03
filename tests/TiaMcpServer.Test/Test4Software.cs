@@ -452,22 +452,22 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "0_OBs/Main_1", true)]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "0_OBs/Main_1", false)]
-        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "1_Tests/DB_Block_1")] // no docs from DB
-        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "1_Tests/FC_Block_1")] // no docs from OB/FB/FC with mixed ProgrammingLanguage
-        public void Test_421_ExportBlockAsDocuments(string projectPath, string softwarePath, string exportPath, string blockPath, bool preservePath)
+        [DynamicData(nameof(TiaTestCases.GetExportBlockAsDocumentsDataSource), typeof(TiaTestCases))]
+        public void Test_421_ExportBlockAsDocuments(SimpleTiaTestCase testCase, ExportBlockAsDocumentsInfo exportBlockAsDocumentsInfo)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
-            var result = _portal.ExportAsDocuments(softwarePath, blockPath, exportPath, preservePath);
+            var result = _portal.ExportAsDocuments(exportBlockAsDocumentsInfo.softwarePath, exportBlockAsDocumentsInfo.blockPath, exportBlockAsDocumentsInfo.exportPath, exportBlockAsDocumentsInfo.preservePath);
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Assert.IsTrue(result, "Failed to export blocks as documents (s7dcl/s7res)");
         }

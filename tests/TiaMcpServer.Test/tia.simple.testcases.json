@@ -216,6 +216,20 @@
         "regexName": "",
         "preservePath": true
       }
+    ],
+    "ExportBlockAsDocuments": [
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0",
+        "blockPath": "0_OBs/Main_1",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0",
+        "blockPath": "0_OBs/Main_1",
+        "preservePath": false
+      }
     ]
   },
   {
