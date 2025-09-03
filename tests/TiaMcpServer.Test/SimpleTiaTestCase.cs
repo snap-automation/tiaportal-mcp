@@ -21,6 +21,7 @@ namespace TiaMcpServer.Test
         public List<ExportTypeInfo>? ExportType { get; set; }
         public List<ImportTypeInfo>? ImportType { get; set; }
         public List<ExportBlocksInfo>? ExportBlocks { get; set; }
+        public List<ExportTypesInfo>? ExportTypes { get; set; }
 
 
 

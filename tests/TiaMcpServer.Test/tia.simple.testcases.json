@@ -208,6 +208,14 @@
         "regexName": "",
         "preservePath": true
       }
+    ],
+    "ExportTypes": [
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0",
+        "regexName": "",
+        "preservePath": true
+      }
     ]
   },
   {
@@ -287,6 +295,26 @@
         "softwarePath": "PC-System_1/Software PLC_1",
         "exportPath": "D:\\Temp\\TIA-Portal\\TestSession1",
         "regexName": "_HMI_.+",
+        "preservePath": false
+      }
+    ],
+    "ExportTypes": [
+      {
+        "softwarePath": "PC-System_1/Software PLC_1",
+        "exportPath": "D:\\Temp\\TIA-Portal\\TestSession1",
+        "regexName": "",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PC-System_1/Software PLC_1",
+        "exportPath": "D:\\Temp\\TIA-Portal\\TestSession1",
+        "regexName": "(^ErrTyp_|_HMI_AllError$)",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PC-System_1/Software PLC_1",
+        "exportPath": "D:\\Temp\\TIA-Portal\\TestSession1",
+        "regexName": "(^ErrTyp_|_HMI_AllError$)",
         "preservePath": false
       }
     ]

@@ -415,20 +415,20 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "", true)]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, Settings.Session1ExportPath, "", true)]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, Settings.Session1ExportPath, "(^ErrTyp_|_HMI_AllError$)", true)]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath, Settings.Session1ExportPath, "(^ErrTyp_|_HMI_AllError$)", false)]
-        public void Test_418_ExportTypes(string projectPath, string softwarePath, string exportPath, string regexName, bool preservePath)
+        [DynamicData(nameof(TiaTestCases.GetExportTypesDataSource), typeof(TiaTestCases))]
+        public void Test_418_ExportTypes(SimpleTiaTestCase testCase, ExportTypesInfo exportTypesInfo)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
-            var result = _portal.ExportTypes(softwarePath, exportPath, regexName, preservePath);
+            var result = _portal.ExportTypes(exportTypesInfo.softwarePath, exportTypesInfo.exportPath, exportTypesInfo.regexName, exportTypesInfo.preservePath);
             if (result != null)
             {
                 Console.WriteLine($"Exported Types:");
@@ -446,7 +446,7 @@ namespace TiaMcpServer.Test
                 success &= false;
             }
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Assert.IsTrue(success, "Failed to export types");
         }
