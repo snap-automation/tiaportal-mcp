@@ -273,7 +273,9 @@
     "DevicePaths": [
       "PC-System_1"
     ],
-    "DeviceItemPaths": [],
+    "DeviceItemPaths": [
+      "PC-System_1/Software PLC_1"
+    ],
     "BlockPaths": [
       {
         "Path": "0_OBs/Main_1",
