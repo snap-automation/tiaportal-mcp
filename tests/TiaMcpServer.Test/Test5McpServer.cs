@@ -118,13 +118,16 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath)]
-        [DataRow(Settings.Session1ProjectPath)]
-        public void Test_504_McpServer_GetDevices(string projectPath)
+        //[DataRow(Settings.Project1ProjectPath)]
+        //[DataRow(Settings.Session1ProjectPath)]
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_504_McpServer_GetDevices(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
             McpServer.Connect();
-            McpServer.OpenProject(projectPath);
+            McpServer.OpenProject(testCase.ProjectPath);
 
             var success = true;
             var response = McpServer.GetDevices();
@@ -225,15 +228,18 @@ namespace TiaMcpServer.Test
 
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister/ML_SubstratState")]
-        public void Test_509_McpServer_GetTypeInfo(string projectPath, string softwarePath, string blockPath)
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister/ML_SubstratState")]
+        [DynamicData(nameof(TiaTestCases.GetTypeDataSource), typeof(TiaTestCases))]
+        public void Test_509_McpServer_GetTypeInfo(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftwareInfo, string typePath)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
             McpServer.Connect();
-            McpServer.OpenProject(projectPath);
+            McpServer.OpenProject(testCase.ProjectPath);
 
             var success = true;
-            var response = McpServer.GetTypeInfo(softwarePath, blockPath);
+            var response = McpServer.GetTypeInfo(plcSoftwareInfo.Path, typePath);
             WriteMessage("McpServer.GetTypeInfo()", response);
 
             McpServer.CloseProject();
