@@ -139,16 +139,19 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0)]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath)]
-        public void Test_505_McpServer_GetSoftwareInfo(string projectPath, string softwarePath)
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0)]
+        //[DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath)]
+        [DynamicData(nameof(TiaTestCases.GetPlcSoftwareSource), typeof(TiaTestCases))]
+        public void Test_505_McpServer_GetSoftwareInfo(SimpleTiaTestCase testCase, PlcSoftwareInfo plcSoftwareInfo)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
             McpServer.Connect();
-            McpServer.OpenProject(projectPath);
+            McpServer.OpenProject(testCase.ProjectPath);
 
             var success = true;
-            var response = McpServer.GetSoftwareInfo(softwarePath);
+            var response = McpServer.GetSoftwareInfo(plcSoftwareInfo.Path);
             WriteMessage("McpServer.GetSoftwareInfo()", response);
 
             McpServer.CloseProject();
