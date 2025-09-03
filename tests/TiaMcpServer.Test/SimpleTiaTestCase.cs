@@ -17,8 +17,10 @@ namespace TiaMcpServer.Test
         public List<BlocksPathInfo>? BlocksPaths { get; set; }
         public List<TypesPathInfo>? TypesPaths { get; set; }
         public List<ExportBlockInfo>? ExportBlock { get; set; }
-                public List<ImportBlockInfo>? ImportBlock { get; set; }
+        public List<ImportBlockInfo>? ImportBlock { get; set; }
         public List<ExportTypeInfo>? ExportType { get; set; }
+        public List<ImportTypeInfo>? ImportType { get; set; }
+
 
 
         public override string ToString()

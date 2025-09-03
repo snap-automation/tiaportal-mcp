@@ -198,5 +198,22 @@ namespace TiaMcpServer.Test
                 }
             }
         }
+
+        public static IEnumerable<object[]> GetImportTypeDataSource()
+        {
+            var filteredTestCases = GetTestCasesByVersion();
+            foreach (var testCase in filteredTestCases)
+            {
+                if (testCase.ImportType != null)
+                {
+                    foreach (var importTypeInfo in testCase.ImportType)
+                    {
+                        yield return new object[] { testCase, importTypeInfo };
+                    }
+                }
+            }
+        }
+
     }
 }
+    

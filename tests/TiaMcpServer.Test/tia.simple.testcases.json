@@ -130,7 +130,7 @@
         "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\0_OBs\\Main_1.xml"
       },
       {
-        "softwarePath": "PLC_0", 
+        "softwarePath": "PLC_0",
         "groupPath": "1_Tests",
         "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\1_Tests\\FC_Block_1.xml"
       },
@@ -163,6 +163,18 @@
         "exportPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0",
         "typePath": "Common/CarrierRegister/ML_CarrierRegisterShort",
         "preservePath": false
+      }
+    ],
+    "ImportType": [
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "Common/CarrierRegister",
+        "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\Common\\CarrierRegister\\ML_SubstratState.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "Common/CarrierRegister",
+        "importPath": "D:\\Temp\\TIA-Portal\\Project1\\PLC_0\\Common\\CarrierRegister\\ML_CarrierRegisterShort.xml"
       }
     ]
   },

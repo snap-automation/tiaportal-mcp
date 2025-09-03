@@ -1,4 +1,5 @@
 ﻿using Microsoft.Extensions.Logging;
+using Microsoft.VisualStudio.TestPlatform.ObjectModel;
 using Siemens.Engineering.SW;
 using Siemens.Engineering.SW.Blocks;
 using System;
@@ -301,9 +302,6 @@ namespace TiaMcpServer.Test
             if (testCase.Version != Engineering.TiaMajorVersion)
                 Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
-            if (testCase.Version != Engineering.TiaMajorVersion)
-                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
-
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
@@ -356,25 +354,29 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister", Settings.Project1ExportPath0 + "\\Common\\CarrierRegister\\ML_SubstratState.xml")]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister", Settings.Project1ExportPath0 + "\\Common\\CarrierRegister\\ML_CarrierRegisterShort.xml")]
-        public void Test_416_ImportType(string projectPath, string softwarePath, string groupPath, string importPath)
-        {
-            if (_portal == null)
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister", Settings.Project1ExportPath0 + "\\Common\\CarrierRegister\\ML_SubstratState.xml")]
+        //[DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, "Common/CarrierRegister", Settings.Project1ExportPath0 + "\\Common\\CarrierRegister\\ML_CarrierRegisterShort.xml")]
+        [DynamicData(nameof(TiaTestCases.GetImportTypeDataSource), typeof(TiaTestCases))]
+             public void Test_416_ImportType(SimpleTiaTestCase testCase, ImportTypeInfo importTypeInfo)
             {
-                Assert.Fail("TiaPortal instance is not initialized");
+                 if (testCase.Version != Engineering.TiaMajorVersion)
+                     Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+    
+                if (_portal == null)
+                {
+                    Assert.Fail("TiaPortal instance is not initialized");
+                }
+   
+                bool success = Common.OpenProject(_portal, testCase.ProjectPath);
+   
+                var result = _portal.ImportType(importTypeInfo.softwarePath, importTypeInfo.groupPath, importTypeInfo.importPath);
+   
+                success &= Common.CloseProject(_portal, testCase.ProjectPath);
+   
+                Assert.IsTrue(result, "Failed to import types");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
-
-            var result = _portal.ImportType(softwarePath, groupPath, importPath);
-
-            success &= Common.CloseProject(_portal, projectPath);
-
-            Assert.IsTrue(result, "Failed to export types");
-        }
-
-        [TestMethod]
+[TestMethod]
         [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "", true)]
         [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "M.*", true)]
         [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0, Settings.Project1ExportPath0, "M.*", false)]
