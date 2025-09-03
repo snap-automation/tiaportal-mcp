@@ -259,6 +259,21 @@ namespace TiaMcpServer.Test
             }
         }
 
+        public static IEnumerable<object[]> GetExportBlocksAsDocumentsDataSource()
+        {
+            var filteredTestCases = GetTestCasesByVersion();
+            foreach (var testCase in filteredTestCases)
+            {
+                if (testCase.ExportBlocksAsDocuments != null)
+                {
+                    foreach (var exportBlocksAsDocumentsInfo in testCase.ExportBlocksAsDocuments)
+                    {
+                        yield return new object[] { testCase, exportBlocksAsDocumentsInfo };
+                    }
+                }
+            }
+        }
+
     }
 }
     

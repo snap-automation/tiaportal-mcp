@@ -23,6 +23,7 @@ namespace TiaMcpServer.Test
         public List<ExportBlocksInfo>? ExportBlocks { get; set; }
         public List<ExportTypesInfo>? ExportTypes { get; set; }
         public List<ExportBlockAsDocumentsInfo>? ExportBlockAsDocuments { get; set; }
+        public List<ExportBlocksAsDocumentsInfo>? ExportBlocksAsDocuments { get; set; }
 
 
 
