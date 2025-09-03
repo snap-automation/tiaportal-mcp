@@ -311,7 +311,7 @@
     "PlcSoftware": [
       {
         "Path": "PC-System_1/Software PLC_1",
-        "Password": "Safety1st"
+        "Password": "Safety1st" //
       }
     ],
     "ExportBlock": [

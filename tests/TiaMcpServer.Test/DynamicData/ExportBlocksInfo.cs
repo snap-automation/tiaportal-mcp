@@ -1,4 +1,4 @@
-namespace TiaMcpServer.Test
+namespace TiaMcpServer.Test.DynamicData
 {
     public class ExportBlocksInfo
     {

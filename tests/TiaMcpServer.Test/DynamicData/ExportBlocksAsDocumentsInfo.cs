@@ -1,6 +1,6 @@
-namespace TiaMcpServer.Test
+namespace TiaMcpServer.Test.DynamicData
 {
-    public class ExportTypesInfo
+    public class ExportBlocksAsDocumentsInfo
     {
         public string softwarePath { get; set; }
         public string exportPath { get; set; }

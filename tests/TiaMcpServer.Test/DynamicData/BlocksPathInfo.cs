@@ -1,6 +1,6 @@
-namespace TiaMcpServer.Test
+namespace TiaMcpServer.Test.DynamicData
 {
-    public class TypesPathInfo
+    public class BlocksPathInfo
     {
         public string Regex { get; set; }
         public string PlcSoftwarePath { get; set; }

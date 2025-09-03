@@ -4,6 +4,7 @@ using Siemens.Engineering.SW;
 using Siemens.Engineering.SW.Blocks;
 using System;
 using TiaMcpServer.Siemens;
+using TiaMcpServer.Test.DynamicData;
 
 namespace TiaMcpServer.Test
 {

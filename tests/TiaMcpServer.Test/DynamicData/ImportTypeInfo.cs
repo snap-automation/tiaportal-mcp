@@ -1,6 +1,6 @@
-namespace TiaMcpServer.Test
+namespace TiaMcpServer.Test.DynamicData
 {
-    public class ImportBlockInfo
+    public class ImportTypeInfo
     {
         public string softwarePath { get; set; }
         public string groupPath { get; set; }
@@ -12,4 +12,3 @@ namespace TiaMcpServer.Test
         }
     }
 }
-
