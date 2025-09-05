@@ -1,7 +1,7 @@
-using System.Collections.Generic;
-using System.IO;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Linq; // Needed for .Where()
 
 namespace TiaMcpServer.Test
@@ -256,6 +256,10 @@ namespace TiaMcpServer.Test
                         yield return new object[] { testCase, exportBlockAsDocumentsInfo };
                     }
                 }
+                else
+                {
+                    yield return new object[] { testCase, null };
+                }
             }
         }
 
@@ -270,6 +274,10 @@ namespace TiaMcpServer.Test
                     {
                         yield return new object[] { testCase, exportBlocksAsDocumentsInfo };
                     }
+                }
+                else
+                {
+                    yield return new object[] { testCase, null };
                 }
             }
         }

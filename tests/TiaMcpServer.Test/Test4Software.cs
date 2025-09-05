@@ -459,6 +459,9 @@ namespace TiaMcpServer.Test
             if (testCase.Version != Engineering.TiaMajorVersion)
                 Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
 
+            if (Engineering.TiaMajorVersion < 19)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}. Only available for TIA Portal version 19 and above.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
@@ -479,6 +482,9 @@ namespace TiaMcpServer.Test
         {
             if (testCase.Version != Engineering.TiaMajorVersion)
                 Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+
+            if (Engineering.TiaMajorVersion < 19)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}. Only available for TIA Portal version 19 and above.");
 
             if (_portal == null)
             {
