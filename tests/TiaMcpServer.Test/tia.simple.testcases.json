@@ -451,6 +451,227 @@
     ]
   },
   {
+    "Name": "TIA V17 MultiUser Project Test Case",
+    "Version": 17,
+    "MultiUser": true,
+    "ProjectPath": "D:\\V17\\TestSession_V17_LS_1\\TestSession_V17_LS_1.als17",
+    "ExportRoot": "D:\\V17\\SaveAs\\TestSession_V17_LS_1\\TestSession_V17_LS_1",
+    "DevicePaths": [
+      "HMI_0",
+      "PC-System_0",
+      "Group1/PC-System_1",
+      "Group1/Group1.1/PC-System_1.1",
+      "Group1/Group1.1/Group1.1.1/PC-System_1.1.1"
+    ],
+    "DeviceItemPaths": [
+      "PLC_0",
+      "PC-System_0/Software PLC_0",
+      "HMI_0/HMI_RT_1",
+      "Group1/PLC_1",
+      "Group1/PC-System_1/Software PLC_1",
+      "Group1/Group1.1/PLC_1.1",
+      "Group1/Group1.1/PC-System_1.1/Software PLC_1.1"
+    ],
+    "BlockPaths": [
+      {
+        "Path": "0_OBs/Main_1",
+        "PlcSoftwarePath": "PLC_0"
+      }
+    ],
+    "TypePaths": [
+      {
+        "Path": "Common/CarrierRegister/ML_SubstratState",
+        "PlcSoftwarePath": "PLC_0"
+      }
+    ],
+    "TypesPaths": [
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PLC_0"
+      }
+    ],
+    "BlocksPaths": [
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "Group1/PLC_1"
+      },
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PC-System_0/Software PLC_0"
+      },
+      {
+        "Regex": "",
+        "PlcSoftwarePath": "PLC_0"
+      },
+      {
+        "Regex": "^M.+",
+        "PlcSoftwarePath": "PLC_0"
+      }
+    ],
+    "PlcSoftware": [
+      {
+        "Path": "PLC_0",
+        "Password": ""
+      },
+      {
+        "Path": "PC-System_0/Software PLC_0",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/PLC_1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/PC-System_1/Software PLC_1",
+        "Password": "Safety1st"
+      },
+      {
+        "Path": "Group1/Group1.1/PLC_1.1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/Group1.1/PC-System_1.1/Software PLC_1.1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/Group1.1/Group1.1.1/PLC_1.1.1",
+        "Password": ""
+      },
+      {
+        "Path": "Group1/Group1.1/Group1.1.1/PC-System_1.1.1/Software PLC_1.1.1",
+        "Password": ""
+      }
+    ],
+    "ExportBlock": [
+      {
+        "softwarePath": "PLC_0",
+        "blockPath": "0_OBs/Main_1",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "blockPath": "0_OBs/Main_1",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "preservePath": false
+      },
+      {
+        "softwarePath": "PLC_0",
+        "blockPath": "1_Tests/FC_Block_1",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "blockPath": "1_Tests/DB_Block_1",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "blockPath": "Common/CarrierRegister/GLOBAL_POSITIONING",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "preservePath": true
+      }
+    ],
+    "ImportBlock": [
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "0_OBs",
+        "importPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0\\0_OBs\\Main_1.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "1_Tests",
+        "importPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0\\1_Tests\\FC_Block_1.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "1_Tests",
+        "importPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0\\1_Tests\\DB_Block_1.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "Common/CarrierRegister",
+        "importPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0\\Common\\CarrierRegister\\GLOBAL_POSITIONING.xml"
+      }
+    ],
+    "ExportType": [
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "typePath": "Common/CarrierRegister/ML_SubstratState",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "typePath": "Common/CarrierRegister/ML_CarrierRegisterShort",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "typePath": "Common/CarrierRegister/ML_CarrierRegisterShort",
+        "preservePath": false
+      }
+    ],
+    "ImportType": [
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "Common/CarrierRegister",
+        "importPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0\\Common\\CarrierRegister\\ML_SubstratState.xml"
+      },
+      {
+        "softwarePath": "PLC_0",
+        "groupPath": "Common/CarrierRegister",
+        "importPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0\\Common\\CarrierRegister\\ML_CarrierRegisterShort.xml"
+      }
+    ],
+    "ExportBlocks": [
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "regexName": "",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "regexName": "M.*",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "regexName": "M.*",
+        "preservePath": false
+      },
+      {
+        "softwarePath": "PC-System_0/Software PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PC-System_0\\Software PLC_0",
+        "regexName": "",
+        "preservePath": true
+      },
+      {
+        "softwarePath": "Group1/PLC_1",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\Group1\\PLC_1",
+        "regexName": "",
+        "preservePath": true
+      }
+    ],
+    "ExportTypes": [
+      {
+        "softwarePath": "PLC_0",
+        "exportPath": "D:\\V17\\Temp\\TIA-Portal\\TestSession1\\PLC_0",
+        "regexName": "",
+        "preservePath": true
+      }
+    ],
+    "ExportBlockAsDocuments": [],
+    "ExportBlocksAsDocuments": []
+  },
+  {
     "Name": "TIA V17 Normal Project Test Case",
     "Version": 17,
     "MultiUser": false,
@@ -523,7 +744,7 @@
       },
       {
         "Path": "Group1/PC-System_1/Software PLC_1",
-        "Password": ""
+        "Password": "Safety1st"
       },
       {
         "Path": "Group1/Group1.1/PLC_1.1",
@@ -668,8 +889,7 @@
         "preservePath": true
       }
     ],
-    // Export Block as Documents not supported in V17, V19+
-    //"ExportBlockAsDocuments": [ ],
-    //"ExportBlocksAsDocuments": [ ]
+    "ExportBlockAsDocuments": [],
+    "ExportBlocksAsDocuments": []
   }
 ]

@@ -249,7 +249,7 @@ namespace TiaMcpServer.Test
             var filteredTestCases = GetTestCasesByVersion();
             foreach (var testCase in filteredTestCases)
             {
-                if (testCase.ExportBlockAsDocuments != null)
+                if (!testCase.ExportBlockAsDocuments.IsNullOrEmpty())
                 {
                     foreach (var exportBlockAsDocumentsInfo in testCase.ExportBlockAsDocuments)
                     {
@@ -268,7 +268,7 @@ namespace TiaMcpServer.Test
             var filteredTestCases = GetTestCasesByVersion();
             foreach (var testCase in filteredTestCases)
             {
-                if (testCase.ExportBlocksAsDocuments != null)
+                if (!testCase.ExportBlocksAsDocuments.IsNullOrEmpty())
                 {
                     foreach (var exportBlocksAsDocumentsInfo in testCase.ExportBlocksAsDocuments)
                     {
