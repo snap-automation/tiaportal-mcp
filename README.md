@@ -19,6 +19,22 @@ A MCP server which connects to Siemens TIA Portal.
 
 - __V20__ is the default version.
 - Previous versions are also supported, but must use the `--tia-major-version` argument to specify the version.
+- Export as documents (.s7dcl/.s7res) via `ExportAsDocuments`/`ExportBlocksAsDocuments` requires TIA Portal V20 or newer.
+- Import from documents (.s7dcl/.s7res) via `ImportFromDocuments`/`ImportBlocksFromDocuments` also requires TIA Portal V20 or newer.
+
+## Known Limitations
+
+- As of 2025-09-02: Importing Ladder (LAD) blocks from SIMATIC SD documents requires the companion `.s7res` file to contain en-US tags for all items; otherwise import may fail. This is a known limitation/bug in TIA Portal Openness.
+
+## Testing
+
+- See `tests/TiaMcpServer.Test/README.md` for environment prerequisites and test asset setup.
+- Standard command: `dotnet test` (run from the repo root).
+- Test execution policy: offer to run tests, but only execute after explicit user confirmation. Details in `AGENTS.md`.
+
+## Contributing
+
+- See `agents.md` for guidance on working with agentic assistants and the test execution policy (offer to run tests only with explicit user confirmation).
 
 ## Copilot Chat
 

@@ -1196,6 +1196,12 @@ namespace TiaMcpServer.Siemens
                 return false;
             }
 
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ExportAsDocuments is only supported on TIA Portal V20 or newer");
+                return false;
+            }
+
             var success = false;
 
             try
@@ -1287,6 +1293,12 @@ namespace TiaMcpServer.Siemens
                 return null;
             }
 
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ExportBlocksAsDocuments is only supported on TIA Portal V20 or newer");
+                return null;
+            }
+
             var list = GetBlocks(softwarePath, regexName);
 
             var exportList = new List<PlcBlock>();
@@ -1325,6 +1337,139 @@ namespace TiaMcpServer.Siemens
             }
 
             return exportList;
+        }
+
+        public bool ImportFromDocuments(string softwarePath, string groupPath, string importPath, string fileNameWithoutExtension, ImportDocumentOptions option)
+        {
+            _logger?.LogInformation($"Importing block from documents: {fileNameWithoutExtension} in {importPath}");
+
+            if (IsProjectNull())
+            {
+                return false;
+            }
+
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ImportFromDocuments is only supported on TIA Portal V20 or newer");
+                return false;
+            }
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+                    var dir = new DirectoryInfo(importPath);
+                    if (!dir.Exists)
+                    {
+                        _logger?.LogWarning($"Import directory does not exist: {importPath}");
+                        return false;
+                    }
+
+                    DocumentImportResult? result = null;
+                    try
+                    {
+                        result = (group != null)
+                            ? group.Blocks.ImportFromDocuments(dir, fileNameWithoutExtension, option)
+                            : plcSoftware.BlockGroup.Blocks.ImportFromDocuments(dir, fileNameWithoutExtension, option);
+                    }
+                    catch (EngineeringNotSupportedException ex)
+                    {
+                        throw new Exception($"EngineeringNotSupportedException at file '{fileNameWithoutExtension}'. {ex.Message}");
+                    }
+
+                    if (result != null && result.State == DocumentResultState.Success)
+                    {
+                        return true;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error importing block from documents");
+            }
+            return false;
+        }
+
+        public IEnumerable<PlcBlock>? ImportBlocksFromDocuments(string softwarePath, string groupPath, string importPath, string regexName, ImportDocumentOptions option, bool preservePath = false)
+        {
+            _logger?.LogInformation($"Importing blocks from documents in {importPath} with regex '{regexName}'");
+
+            if (IsProjectNull())
+            {
+                return null;
+            }
+
+            if (Engineering.TiaMajorVersion < 20)
+            {
+                _logger?.LogWarning("ImportBlocksFromDocuments is only supported on TIA Portal V20 or newer");
+                return null;
+            }
+
+            var imported = new List<PlcBlock>();
+
+            try
+            {
+                var softwareContainer = GetSoftwareContainer(softwarePath);
+                if (softwareContainer?.Software is PlcSoftware plcSoftware)
+                {
+                    var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+                    var dir = new DirectoryInfo(importPath);
+                    if (!dir.Exists)
+                    {
+                        _logger?.LogWarning($"Import directory does not exist: {importPath}");
+                        return imported;
+                    }
+
+                    var rx = string.IsNullOrWhiteSpace(regexName)
+                        ? null
+                        : new Regex(regexName, RegexOptions.Compiled);
+
+                    // Consider .s7dcl as the primary index; .s7res is optional supplemental
+                    var files = dir.GetFiles("*.s7dcl", SearchOption.TopDirectoryOnly);
+                    foreach (var file in files)
+                    {
+                        var name = Path.GetFileNameWithoutExtension(file.Name);
+                        if (rx != null && !rx.IsMatch(name))
+                        {
+                            continue;
+                        }
+
+                        try
+                        {
+                            var result = (group != null)
+                                ? group.Blocks.ImportFromDocuments(dir, name, option)
+                                : plcSoftware.BlockGroup.Blocks.ImportFromDocuments(dir, name, option);
+
+                            if (result != null && result.State == DocumentResultState.Success && result.ImportedPlcBlocks != null)
+                            {
+                                foreach (var blk in result.ImportedPlcBlocks)
+                                {
+                                    if (blk != null)
+                                    {
+                                        imported.Add(blk);
+                                    }
+                                }
+                            }
+                        }
+                        catch (EngineeringNotSupportedException)
+                        {
+                            // mixed languages etc.; skip but continue batch
+                        }
+                        catch (Exception)
+                        {
+                            // skip problematic item, continue
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex, "Error importing blocks from documents");
+            }
+
+            return imported;
         }
 
         #endregion
