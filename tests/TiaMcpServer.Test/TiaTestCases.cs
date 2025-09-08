@@ -9,45 +9,24 @@ namespace TiaMcpServer.Test
 {
     public static class TiaTestCases
     {
+        public static int GetTiaMajorVersion()
+        {
+            int tiaMajorVersion = 20; // Default value
+            string envVar = Environment.GetEnvironmentVariable("TIA_MCP_TEST_VERSION");
+            if (!string.IsNullOrEmpty(envVar) && int.TryParse(envVar, out int parsed))
+            {
+                tiaMajorVersion = parsed;
+            }
+            return tiaMajorVersion;
+        }
+
         private static List<SimpleTiaTestCase> GetTestCasesByVersion()
         {
             string jsonFilePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tia.simple.testcases.json");
             string jsonContent = File.ReadAllText(jsonFilePath);
             List<SimpleTiaTestCase> testCases = JsonConvert.DeserializeObject<List<SimpleTiaTestCase>>(jsonContent);
 
-            int tiaMajorVersion = 20; // Default value
-
-            try
-            {
-                string runSettingsFile = Environment.GetEnvironmentVariable("VS_SETTINGS_FILE");
-                if (string.IsNullOrEmpty(runSettingsFile))
-                {
-                    // If the environment variable is not set, try to find the .runsettings file in the solution directory
-                    string solutionDir = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName;
-                    runSettingsFile = Directory.GetFiles(solutionDir, "*.runsettings").FirstOrDefault();
-                }
-
-                if (!string.IsNullOrEmpty(runSettingsFile) && File.Exists(runSettingsFile))
-                {
-                    Console.WriteLine($"Reading settings from: {runSettingsFile}");
-                    XmlDocument doc = new XmlDocument();
-                    doc.Load(runSettingsFile);
-                    XmlNode node = doc.SelectSingleNode("/RunSettings/TestRunParameters/Parameter[@name='TIA_MCP_TEST_VERSION']");
-                    if (node != null)
-                    {
-                        string versionString = node.Attributes["value"].Value;
-                        if (int.TryParse(versionString, out int parsedVersion))
-                        {
-                            tiaMajorVersion = parsedVersion;
-                        }
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                // Log exceptions to the console to help with debugging
-                Console.WriteLine($"Error reading .runsettings file: {ex.Message}");
-            }
+            int tiaMajorVersion = GetTiaMajorVersion();
 
             Console.WriteLine($"Filtering test cases for TIA Portal version {tiaMajorVersion}");
             return testCases.Where(tc => tc.Version == tiaMajorVersion).ToList();
