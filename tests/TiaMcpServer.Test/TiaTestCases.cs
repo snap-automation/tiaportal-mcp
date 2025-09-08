@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq; // Needed for .Where()
+using System.Xml;
 
 namespace TiaMcpServer.Test
 {
@@ -15,12 +16,40 @@ namespace TiaMcpServer.Test
             List<SimpleTiaTestCase> testCases = JsonConvert.DeserializeObject<List<SimpleTiaTestCase>>(jsonContent);
 
             int tiaMajorVersion = 20; // Default value
-            string envVersion = Environment.GetEnvironmentVariable("TIA_MCP_TEST_VERSION");
-            if (!string.IsNullOrEmpty(envVersion) && int.TryParse(envVersion, out int parsedVersion))
+
+            try
             {
-                tiaMajorVersion = parsedVersion;
+                string runSettingsFile = Environment.GetEnvironmentVariable("VS_SETTINGS_FILE");
+                if (string.IsNullOrEmpty(runSettingsFile))
+                {
+                    // If the environment variable is not set, try to find the .runsettings file in the solution directory
+                    string solutionDir = Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory).Parent.Parent.Parent.Parent.FullName;
+                    runSettingsFile = Directory.GetFiles(solutionDir, "*.runsettings").FirstOrDefault();
+                }
+
+                if (!string.IsNullOrEmpty(runSettingsFile) && File.Exists(runSettingsFile))
+                {
+                    Console.WriteLine($"Reading settings from: {runSettingsFile}");
+                    XmlDocument doc = new XmlDocument();
+                    doc.Load(runSettingsFile);
+                    XmlNode node = doc.SelectSingleNode("/RunSettings/TestRunParameters/Parameter[@name='TIA_MCP_TEST_VERSION']");
+                    if (node != null)
+                    {
+                        string versionString = node.Attributes["value"].Value;
+                        if (int.TryParse(versionString, out int parsedVersion))
+                        {
+                            tiaMajorVersion = parsedVersion;
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log exceptions to the console to help with debugging
+                Console.WriteLine($"Error reading .runsettings file: {ex.Message}");
             }
 
+            Console.WriteLine($"Filtering test cases for TIA Portal version {tiaMajorVersion}");
             return testCases.Where(tc => tc.Version == tiaMajorVersion).ToList();
         }
 
@@ -284,4 +313,3 @@ namespace TiaMcpServer.Test
 
     }
 }
-    

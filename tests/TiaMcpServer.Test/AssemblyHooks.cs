@@ -13,10 +13,13 @@ namespace TiaMcpServer.Test
             // context.WriteLine("Assembly initialization started");
             int tiaMajorVersion = 20; // Default value
 
-            string envVersion = Environment.GetEnvironmentVariable("TIA_MCP_TEST_VERSION");
-            if (!string.IsNullOrEmpty(envVersion) && int.TryParse(envVersion, out int parsedVersion))
+            if (context.Properties.Contains("TIA_MCP_TEST_VERSION"))
             {
-                tiaMajorVersion = parsedVersion;
+                string runSettingsVersion = context.Properties["TIA_MCP_TEST_VERSION"].ToString();
+                if (int.TryParse(runSettingsVersion, out int parsedVersion))
+                {
+                    tiaMajorVersion = parsedVersion;
+                }
             }
 
             Engineering.TiaMajorVersion = tiaMajorVersion;
