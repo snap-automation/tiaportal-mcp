@@ -57,3 +57,7 @@ The TiaMcpServer project is a powerful tool that allows LLMs to interact with th
 ## Known Issues
 
 - As of 2025-09-02: Importing Ladder (LAD) blocks from SIMATIC SD documents requires the companion `.s7res` file to contain en-US tags for all items; otherwise import may fail. This is a known limitation/bug in TIA Portal Openness.
+
+## Contributing
+
+- See root `AGENTS.md` for agent guidance and the test execution policy (offer to run tests only with explicit user confirmation).

@@ -26,6 +26,12 @@ A MCP server which connects to Siemens TIA Portal.
 
 - As of 2025-09-02: Importing Ladder (LAD) blocks from SIMATIC SD documents requires the companion `.s7res` file to contain en-US tags for all items; otherwise import may fail. This is a known limitation/bug in TIA Portal Openness.
 
+## Testing
+
+- See `tests/TiaMcpServer.Test/README.md` for environment prerequisites and test asset setup.
+- Standard command: `dotnet test` (run from the repo root).
+- Test execution policy: offer to run tests, but only execute after explicit user confirmation. Details in `AGENTS.md`.
+
 ## Contributing
 
 - See `agents.md` for guidance on working with agentic assistants and the test execution policy (offer to run tests only with explicit user confirmation).
