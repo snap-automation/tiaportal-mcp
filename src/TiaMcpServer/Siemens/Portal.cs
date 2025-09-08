@@ -896,7 +896,10 @@ namespace TiaMcpServer.Siemens
                         File.Delete(exportPath);
                     }
 
-                    block.Export(new FileInfo(exportPath), ExportOptions.None);
+                    if (block.IsConsistent)
+                    {
+                        block.Export(new FileInfo(exportPath), ExportOptions.None);
+                    }
 
                 }
                 catch (Exception)
@@ -943,7 +946,10 @@ namespace TiaMcpServer.Siemens
                         File.Delete(exportPath);
                     }
 
-                    type.Export(new FileInfo(exportPath), ExportOptions.None);
+                    if (type.IsConsistent)
+                    {
+                        type.Export(new FileInfo(exportPath), ExportOptions.None);
+                    }
                 }
                 catch (Exception)
                 {
@@ -1329,9 +1335,11 @@ namespace TiaMcpServer.Siemens
                     }
                     catch (EngineeringNotSupportedException)
                     {
+                        // todo: throw or skip?
                     }
                     catch (Exception)
                     {
+                        // todo: throw or skip?
                     }
                 }
             }
