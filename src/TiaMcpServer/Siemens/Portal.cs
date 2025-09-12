@@ -772,6 +772,22 @@ namespace TiaMcpServer.Siemens
             return null;
         }
 
+        public string GetBlockPath(PlcBlock block)
+        {
+            if (block == null)
+            {
+                return string.Empty;
+            }
+
+            if (block.Parent is PlcBlockGroup parentGroup)
+            {
+                var groupPath = GetPlcBlockGroupPath(parentGroup);
+                return string.IsNullOrEmpty(groupPath) ? block.Name : $"{groupPath}/{block.Name}";
+            }
+
+            return block.Name;
+        }
+
         public List<PlcBlock> GetBlocks(string softwarePath, string regexName = "")
         {
             _logger?.LogInformation("Getting blocks...");
@@ -865,15 +881,20 @@ namespace TiaMcpServer.Siemens
         {
             _logger?.LogInformation($"Exporting block by path: {blockPath}");
 
-            if (IsProjectNull())
+            try
             {
-                return null;
-            }
+                if (IsProjectNull())
+                {
+                    throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
+                }
 
-            var block = GetBlock(softwarePath, blockPath);
+                var block = GetBlock(softwarePath, blockPath);
 
-            if (block != null)
-            {
+                if (block == null)
+                {
+                    throw new PortalException(PortalErrorCode.NotFound, "Block not found");
+                }
+
                 if (preservePath)
                 {
                     var groupPath = "";
@@ -889,23 +910,32 @@ namespace TiaMcpServer.Siemens
                     exportPath = Path.Combine(exportPath, $"{block.Name}.xml");
                 }
 
-                try
+                if (File.Exists(exportPath))
                 {
-                    if (File.Exists(exportPath))
-                    {
-                        File.Delete(exportPath);
-                    }
-
-                    block.Export(new FileInfo(exportPath), ExportOptions.None);
-
+                    File.Delete(exportPath);
                 }
-                catch (Exception)
-                {
-                    block = null; // Export failed, return null
-                }
+
+                block.Export(new FileInfo(exportPath), ExportOptions.None);
+
+                return block;
             }
-
-            return block;
+            catch (PortalException pex)
+            {
+                pex.Data["softwarePath"] = softwarePath;
+                pex.Data["blockPath"] = blockPath;
+                pex.Data["exportPath"] = exportPath;
+                _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                var pex = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                pex.Data["softwarePath"] = softwarePath;
+                pex.Data["blockPath"] = blockPath;
+                pex.Data["exportPath"] = exportPath;
+                _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                throw pex;
+            }
         }
 
         public PlcType? ExportType(string softwarePath, string typePath, string exportPath, bool preservePath = false)

@@ -28,6 +28,124 @@ Centralized list of actionable improvements gathered from initial repo review. U
 
 ## Housekeeping
 - [x] Add a "Contributing" link in `README.md` pointing to `agents.md`.
+
+## Siemens Wrappers Refactor (Duplication/Exceptions)
+
+- [ ] Centralize exception handling in Siemens wrappers
+  Reasoning: `Portal.cs` contains many `try/catch (Exception)` blocks that return `false`/`null` without consistent logging or context. A small helper reduces boilerplate and improves observability.
+  Excerpt (today):
+  ```csharp
+  try
+  {
+      _project = null;
+      _portal?.Dispose();
+      return true;
+  }
+  catch (Exception)
+  {
+      return false;
+  }
+  ```
+  Example (proposed helper usage):
+  ```csharp
+  return Operation.Run(_logger, "Disconnecting from TIA Portal", () =>
+  {
+      _project = null;
+      _portal?.Dispose();
+  });
+  ```
+
+- [ ] Add guard + not-found helpers for Siemens entities
+  Reasoning: Repeated null checks (GetDevice/GetType/GetBlock, etc.) and ad-hoc error messages create inconsistencies. A guard establishes consistent messages and reduces lines.
+  Excerpt (today):
+  ```csharp
+  var device = GetDevice(devicePath);
+  if (device == null)
+  {
+      return false; // or throw later in MCP layer
+  }
+  ```
+  Example (proposed):
+  ```csharp
+  var device = Guard.RequireNotNull(GetDevice(devicePath),
+      () => McpErrors.NotFound("Device", devicePath));
+  ```
+
+- [ ] Introduce DTO mappers for attributes → response objects
+  Reasoning: Mapping attributes and common fields is repeated across blocks/types/devices. Central mappers keep shape changes consistent.
+  Excerpt (today):
+  ```csharp
+  var attrs = Helper.GetAttributeList(block);
+  var dto = new ResponseBlockInfo { Name = block.Name, Attributes = attrs, /* ... */ };
+  ```
+  Example (proposed):
+  ```csharp
+  var dto = DtoMapper.ToBlockInfo(block);
+  ```
+
+- [ ] Create a list mapping helper for collection projections
+  Reasoning: Multiple `foreach` loops project Siemens objects into response lists with null filters. A helper simplifies and standardizes this.
+  Excerpt (today):
+  ```csharp
+  var list = new List<ResponseBlockInfo>();
+  foreach (var b in blocks)
+  {
+      if (b != null) list.Add(DtoMapper.ToBlockInfo(b));
+  }
+  ```
+  Example (proposed):
+  ```csharp
+  var list = ListMapper.Map(blocks, DtoMapper.ToBlockInfo);
+  ```
+
+- [ ] Generalize ASCII tree printing (project/software trees)
+  Reasoning: Several recursive methods build prefixed tree strings with near-identical logic. A generic tree printer would remove duplication and reduce bugs.
+  Excerpt (today):
+  ```csharp
+  private void GetProjectTreeDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates) { /*...*/ }
+  private void GetProjectTreeGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates) { /*...*/ }
+  ```
+  Example (proposed):
+  ```csharp
+  TreePrinter.Write(sb, root,
+      children: n => n.Children,
+      label:    n => n.DisplayName,
+      hasMore:  n => n.HasMore);
+  ```
+
+- [ ] Replace boolean returns with lightweight result objects (internals)
+  Reasoning: Widespread `return true/false` makes error sources opaque. A `Result` type can carry messages and improves upstream decisions without changing public MCP contracts yet.
+  Excerpt (today):
+  ```csharp
+  if (!Compile()) return false;
+  ```
+  Example (proposed):
+  ```csharp
+  var r = Compile();
+  if (!r.Success) return r; // r.Message contains context
+  ```
+
+- [ ] Consolidate progress reporting for export/import operations
+  Reasoning: ExportBlocks/ExportTypes/ExportBlocksAsDocuments share progress calculations and error notifications. A wrapper reduces scattered try/catch and progress-token checks.
+  Excerpt (today):
+  ```csharp
+  // compute totals, send start; for each item send progress; on error send error progress
+  ```
+  Example (proposed):
+  ```csharp
+  await ProgressRunner.Run(total, progressToken, onStart, onItem, onComplete, onError);
+  ```
+
+- [ ] Address nullable warnings in `Portal.cs` with guards
+  Reasoning: Build shows nullability warnings for software tree groups; explicit guards make intent clear and avoid runtime NREs.
+  Excerpt (warnings):
+  - CS8602: Dereference of a possibly null reference.
+  - CS8604: Possible null reference argument for parameter `blockGroup`/`typeGroup`.
+  Example (proposed):
+  ```csharp
+  var group = Guard.RequireNotNull(blockGroup, () => new InvalidOperationException("Block group missing"));
+  GetSoftwareTreeBlockGroup(sb, group, ancestorStates, label, isLast);
+  ```
 - [ ] Verify that all fenced code blocks in Markdown include language hints per `style.md` and wrap lines for readability.
 
 ## MCP Tools Docs (Export/Import)

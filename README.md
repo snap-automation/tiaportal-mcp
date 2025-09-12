@@ -25,6 +25,7 @@ A MCP server which connects to Siemens TIA Portal.
 ## Known Limitations
 
 - As of 2025-09-02: Importing Ladder (LAD) blocks from SIMATIC SD documents requires the companion `.s7res` file to contain en-US tags for all items; otherwise import may fail. This is a known limitation/bug in TIA Portal Openness.
+ - `ExportBlock` requires a fully qualified `blockPath` like `Group/Subgroup/Name`. If only a name is provided, the MCP server returns `InvalidParams` and may include suggestions for likely full paths.
 
 ## Testing
 
@@ -35,6 +36,12 @@ A MCP server which connects to Siemens TIA Portal.
 ## Contributing
 
 - See `agents.md` for guidance on working with agentic assistants and the test execution policy (offer to run tests only with explicit user confirmation).
+
+## Error Handling (ExportBlock)
+
+- The Portal layer throws `PortalException` with a short message and `PortalErrorCode` (e.g., NotFound, ExportFailed), and attaches `softwarePath`, `blockPath`, `exportPath` in `Exception.Data` while preserving `InnerException` on export failures.
+- The MCP layer maps these to `McpException` codes. For `ExportFailed`, it includes a concise reason from the underlying error; for `NotFound`, it returns `InvalidParams` and may suggest likely full block paths if a bare name was provided.
+- This standardized pattern currently applies to `ExportBlock` and will expand incrementally.
 
 ## Copilot Chat
 

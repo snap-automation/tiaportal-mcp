@@ -792,7 +792,7 @@ namespace TiaMcpServer.ModelContextProtocol
         [McpServerTool(Name = "ExportBlock"), Description("Export a block from plc software to file")]
         public static ResponseExportBlock ExportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
-            [Description("blockPath: defines the path in the project structure to the block")] string blockPath,
+            [Description("blockPath: full path to the block in the project structure, e.g. 'Group/Subgroup/Name' (single names are ambiguous)")] string blockPath,
             [Description("exportPath: defines the path where to export the block")] string exportPath,
             [Description("preservePath: preserves the path/structure of the plc software")] bool preservePath = false)
         {
@@ -811,10 +811,73 @@ namespace TiaMcpServer.ModelContextProtocol
                         }
                     };
                 }
-                else
+                // Should not be reachable because Portal.ExportBlock throws on failure
+                throw new McpException($"Failed exporting block from '{blockPath}' to '{exportPath}'", McpErrorCode.InternalError);
+            }
+            catch (TiaMcpServer.Siemens.PortalException pex)
+            {
+                // Map known portal errors to sharper MCP errors and messages.
+                switch (pex.Code)
                 {
-                    throw new McpException($"Failed exporting block from '{blockPath}' to '{exportPath}'", McpErrorCode.InternalError);
+                    case TiaMcpServer.Siemens.PortalErrorCode.NotFound:
+                        {
+                            var suggestionNote = string.Empty;
+                            // If the path has no '/', it may be incomplete; build suggestions using Portal's regex search and path resolver
+                            if (!string.IsNullOrEmpty(blockPath) && !blockPath.Contains('/'))
+                            {
+                                try
+                                {
+                                    var escaped = Regex.Escape(blockPath);
+                                    var blocks = Portal.GetBlocks(softwarePath, $"^{escaped}$");
+                                    if (blocks == null || blocks.Count == 0)
+                                    {
+                                        blocks = Portal.GetBlocks(softwarePath, escaped);
+                                    }
+
+                                    var candidates = blocks
+                                        .Take(10)
+                                        .Select(b => Portal.GetBlockPath(b))
+                                        .Where(p => !string.IsNullOrWhiteSpace(p))
+                                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                                        .ToList();
+
+                                    if (candidates.Count > 0)
+                                    {
+                                        suggestionNote = $" Did you mean: {string.Join(", ", candidates)}?";
+                                    }
+                                }
+                                catch
+                                {
+                                    // Best-effort suggestions only
+                                }
+                            }
+
+                            var msg = $"Block not found.{suggestionNote}".Trim();
+                            throw new McpException(msg, McpErrorCode.InvalidParams);
+                        }
+
+                    case TiaMcpServer.Siemens.PortalErrorCode.ExportFailed:
+                        {
+                            // Relay underlying portal error with concise reason; log full details
+                            var reason = pex.InnerException?.Message?.Trim();
+                            var msg = "Failed to export block.";
+                            if (!string.IsNullOrEmpty(reason)) msg += $" Reason: {reason}";
+
+                            Logger?.LogError(pex, "MCP ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}",
+                                pex.Data?["softwarePath"], pex.Data?["blockPath"], pex.Data?["exportPath"]);
+
+                            throw new McpException(msg, McpErrorCode.InternalError);
+                        }
+
+                    case TiaMcpServer.Siemens.PortalErrorCode.InvalidParams:
+                    case TiaMcpServer.Siemens.PortalErrorCode.InvalidState:
+                        {
+                            throw new McpException(pex.Message, McpErrorCode.InvalidParams);
+                        }
                 }
+
+                // Fallback
+                throw new McpException(pex.Message, McpErrorCode.InternalError);
             }
             catch (Exception ex) when (ex is not McpException)
             {
@@ -822,6 +885,83 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
+        private static void ThrowMcpForExportBlock(PortalException pex, string softwarePath, string blockPath, string exportPath)
+        {
+            switch (pex.Code)
+            {
+                case PortalErrorCode.NotFound:
+                    {
+                        var suggestion = BuildBlockPathSuggestion(softwarePath, blockPath);
+                        var msg = $"Block not found.{suggestion}".Trim();
+                        throw new McpException(msg, McpErrorCode.InvalidParams);
+                    }
+
+                case PortalErrorCode.ExportFailed:
+                    {
+                        var reason = pex.InnerException?.Message?.Trim();
+                        var msg = string.IsNullOrEmpty(reason)
+                            ? "Failed to export block."
+                            : $"Failed to export block. Reason: {reason}";
+
+                        Logger?.LogError(pex, "MCP ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}",
+                            pex.Data?["softwarePath"], pex.Data?["blockPath"], pex.Data?["exportPath"]);
+
+                        throw new McpException(msg, McpErrorCode.InternalError);
+                    }
+
+                case PortalErrorCode.InvalidParams:
+                case PortalErrorCode.InvalidState:
+                    {
+                        throw new McpException(pex.Message, McpErrorCode.InvalidParams);
+                    }
+
+                default:
+                    throw new McpException(pex.Message, McpErrorCode.InternalError);
+            }
+        }
+
+        private static string BuildBlockPathSuggestion(string softwarePath, string blockPath)
+        {
+            if (string.IsNullOrEmpty(blockPath) || blockPath.Contains('/')) return string.Empty;
+            try
+            {
+                var escaped = Regex.Escape(blockPath);
+                var blocks = Portal.GetBlocks(softwarePath, $"^{escaped}$");
+                if (blocks == null || blocks.Count == 0)
+                {
+                    blocks = Portal.GetBlocks(softwarePath, escaped);
+                }
+
+                var candidates = blocks
+                    .Take(10)
+                    .Select(b =>
+                    {
+                        var name = b.Name;
+                        var parts = new List<string> { name };
+                        var parent = b.Parent;
+                        while (parent != null)
+                        {
+                            if (parent is PlcBlockSystemGroup) break;
+                            if (parent is PlcBlockGroup grp)
+                            {
+                                parts.Insert(0, grp.Name);
+                                parent = grp.Parent;
+                            }
+                            else break;
+                        }
+                        if (parts.Count > 1) parts.RemoveAt(0);
+                        return string.Join("/", parts);
+                    })
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                return candidates.Count > 0 ? $" Did you mean: {string.Join(", ", candidates)}?" : string.Empty;
+            }
+            catch
+            {
+                return string.Empty; // best effort only
+            }
+        }
         [McpServerTool(Name = "ImportBlock"), Description("Import a block file to plc software")]
         public static ResponseImportBlock ImportBlock(
             [Description("softwarePath: defines the path in the project structure to the plc software")] string softwarePath,
