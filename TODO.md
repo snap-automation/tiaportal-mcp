@@ -83,6 +83,17 @@ Centralized list of actionable improvements gathered from initial repo review. U
   var dto = DtoMapper.ToBlockInfo(block);
   ```
 
+- [ ] Roll out PortalException + context enrichment pattern beyond ExportBlock
+  Affected: `ImportBlock`, `ExportBlocks`, `ExportType`, `ImportType`, `ExportBlocksAsDocuments`, `ImportFromDocuments`, etc.
+  Rules:
+  - Short messages + `PortalErrorCode` only (no param echoing in message)
+  - Attach context in `Exception.Data` close to the throw (function-specific keys)
+  - Preserve `InnerException` for operation failures and log once with structured fields
+
+- [ ] Add helpers for path resolution parity
+  - `GetTypePath(PlcType)` analogous to `GetBlockPath(PlcBlock)` for building fully-qualified paths.
+  - Use these from MCP when building “Did you mean…” suggestions.
+
 - [ ] Create a list mapping helper for collection projections
   Reasoning: Multiple `foreach` loops project Siemens objects into response lists with null filters. A helper simplifies and standardizes this.
   Excerpt (today):
@@ -158,6 +169,9 @@ Centralized list of actionable improvements gathered from initial repo review. U
 - [ ] Add XML documentation comments to export/import methods in `ModelContextProtocol/McpServer.cs` and corresponding Siemens wrappers (e.g., `Siemens/Portal.cs`, `Siemens/Openness.cs`). Cover summary, pre/postconditions, ordered steps, params/returns, exceptions, thread-safety/cancellation, and `<seealso>` links to tool docs.
 - [ ] Enable XML documentation file generation in `src/TiaMcpServer/TiaMcpServer.csproj` (set `DocumentationFile` for `net48`) so IDE tooltips and doc generation work.
 - [ ] Add usage recipes under `docs/recipes/` (e.g., export only FBs matching `FB_Prod.*`, import with overwrite/skip, preservePath false) with minimal and full payloads and expected responses.
+
+- [ ] Document block path rules and suggestions
+  - In `docs/tools/export-blocks.md` and server README, state that `blockPath` must be `Group/Subgroup/Name` and that MCP suggests candidates for single-name inputs by regex searching all blocks and formatting paths via `Portal.GetBlockPath`.
 - [ ] Cross-link: from tool docs to relevant tests in `tests/TiaMcpServer.Test` and from code via `<seealso>` to markdown docs; from README to samples and tool docs.
 - [ ] Optional: Evaluate DocFX (or similar) to generate API docs from XML comments; if adopted, add a short `docs/README.md` and build instructions.
 - [ ] Optional CI: add markdown linting and doc build validation to the pipeline (skippable locally if TIA isn’t installed).
