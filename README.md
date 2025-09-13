@@ -43,6 +43,18 @@ A MCP server which connects to Siemens TIA Portal.
 - The MCP layer maps these to `McpException` codes. For `ExportFailed`, it includes a concise reason from the underlying error; for `NotFound`, it returns `InvalidParams` and may suggest likely full block paths if a bare name was provided.
 - This standardized pattern currently applies to `ExportBlock` and will expand incrementally.
 
+## Transports
+
+- Supported today: `stdio`
+  - Program wires `AddMcpServer().WithStdioServerTransport()`.
+  - For stdio, logs must go to stderr to avoid corrupting JSON-RPC.
+- Available via SDK: `stream` (custom streams)
+  - The SDK exposes `WithStreamServerTransport(Stream input, Stream output)` which can be used to host over TCP sockets or other streams.
+  - Not wired in this repo yet.
+- HTTP/Streamable HTTP: not implemented yet
+  - The current ModelContextProtocol .NET package in use (0.3.0-preview.4) does not provide an HTTP server transport out of the box.
+  - Plan (see TODO): add `--transport http`, `--http-prefix`, and `--http-api-key`, host with `HttpListener`, and route POST `/mcp` to the MCP handlers. Later align with MCP Streamable HTTP spec.
+
 ## Copilot Chat
 
 - Example mcp.json, when using VS Code extension [TIA-Portal MCP-Server](https://marketplace.visualstudio.com/items?itemName=JHeilingbrunner.vscode-tiaportal-mcp) and TIA-Portal V18

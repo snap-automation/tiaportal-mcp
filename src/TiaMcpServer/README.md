@@ -59,6 +59,16 @@ The TiaMcpServer project is a powerful tool that allows LLMs to interact with th
 
 - As of 2025-09-02: Importing Ladder (LAD) blocks from SIMATIC SD documents requires the companion `.s7res` file to contain en-US tags for all items; otherwise import may fail. This is a known limitation/bug in TIA Portal Openness.
 
+## Transports
+
+- Current transport: `stdio`
+  - The server is hosted with `AddMcpServer().WithStdioServerTransport()`.
+  - For stdio, all logs must go to stderr.
+- Streams transport: available in SDK (not wired here)
+  - The SDK also exposes `WithStreamServerTransport(Stream input, Stream output)` which can be used to host over TCP or other custom streams.
+- HTTP (planned)
+  - This repo does not yet include an HTTP or SSE transport. The plan is to add a CLI flag `--transport http` and host a loopback `HttpListener` that forwards POST `/mcp` to the MCP request handler, then iterate towards MCP Streamable HTTP compliance.
+
 ## Error Handling Standard (ExportBlock)
 
 - Portal layer
