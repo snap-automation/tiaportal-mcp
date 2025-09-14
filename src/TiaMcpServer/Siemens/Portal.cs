@@ -925,22 +925,23 @@ namespace TiaMcpServer.Siemens
 
                 return block;
             }
-            catch (PortalException pex)
-            {
-                pex.Data["softwarePath"] = softwarePath;
-                pex.Data["blockPath"] = blockPath;
-                pex.Data["exportPath"] = exportPath;
-                _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
-                throw;
-            }
             catch (Exception ex)
             {
-                var pex = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
-                pex.Data["softwarePath"] = softwarePath;
-                pex.Data["blockPath"] = blockPath;
-                pex.Data["exportPath"] = exportPath;
-                _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
-                throw pex;
+                if (ex is PortalException pex)
+                {
+                    pex.Data["softwarePath"] = softwarePath;
+                    pex.Data["blockPath"] = blockPath;
+                    pex.Data["exportPath"] = exportPath;
+                    _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                    throw;
+                }
+
+                var wrapped = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                wrapped.Data["softwarePath"] = softwarePath;
+                wrapped.Data["blockPath"] = blockPath;
+                wrapped.Data["exportPath"] = exportPath;
+                _logger?.LogError(wrapped, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                throw wrapped;
             }
         }
 
@@ -992,22 +993,23 @@ namespace TiaMcpServer.Siemens
 
                 return type;
             }
-            catch (PortalException pex)
-            {
-                pex.Data["softwarePath"] = softwarePath;
-                pex.Data["typePath"] = typePath;
-                pex.Data["exportPath"] = exportPath;
-                _logger?.LogError(pex, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
-                throw;
-            }
             catch (Exception ex)
             {
-                var pex = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
-                pex.Data["softwarePath"] = softwarePath;
-                pex.Data["typePath"] = typePath;
-                pex.Data["exportPath"] = exportPath;
-                _logger?.LogError(pex, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
-                throw pex;
+                if (ex is PortalException pex)
+                {
+                    pex.Data["softwarePath"] = softwarePath;
+                    pex.Data["typePath"] = typePath;
+                    pex.Data["exportPath"] = exportPath;
+                    _logger?.LogError(pex, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
+                    throw;
+                }
+
+                var wrapped = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                wrapped.Data["softwarePath"] = softwarePath;
+                wrapped.Data["typePath"] = typePath;
+                wrapped.Data["exportPath"] = exportPath;
+                _logger?.LogError(wrapped, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
+                throw wrapped;
             }
         }
 

@@ -24,12 +24,11 @@ This document standardizes how errors are raised in the Siemens portal layer and
 Within `src/TiaMcpServer/Siemens/Portal.cs` methods:
 
 - Throw lightweight `PortalException` with an appropriate `Code` from locations that detect an error (validation, not-found, invalid state).
-- Add context metadata only in the method’s `catch (PortalException)`:
-  - `pex.Data["softwarePath"] = ...` etc.
-  - Log with structured context.
-  - `throw;` to preserve stack.
+- Use a single `catch (Exception ex)` per method:
+  - If `ex` is `PortalException pex`, attach context keys (`softwarePath`, `blockPath`/`typePath`, `exportPath`), log, and `throw;`.
+  - Otherwise wrap with `PortalException(ExportFailed, "Export failed", inner: ex)`, attach context, log, and throw the wrapped exception.
 
-This ensures consistent context is present even for early-validation failures without duplicating metadata code at multiple sites.
+This ensures consistent context is present even for early-validation failures without duplicating metadata and avoids multiple catch blocks.
 
 ## MCP Mapping
 
@@ -43,4 +42,3 @@ This ensures consistent context is present even for early-validation failures wi
   - `ResponseExportBlocks`: `Items` (exported), `Inconsistent` (skipped)
   - `ResponseExportTypes`: `Items` (exported), `Inconsistent` (skipped)
 - `Meta` contains counts for totals, exported, and inconsistent.
-
