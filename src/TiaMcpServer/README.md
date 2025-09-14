@@ -78,6 +78,7 @@ The TiaMcpServer project is a powerful tool that allows LLMs to interact with th
 - MCP layer
   - Maps `NotFound` to `McpException` with `InvalidParams`. If `blockPath` is a single name, it suggests likely full paths by scanning blocks.
   - Maps `ExportFailed` to `InternalError` and includes a concise reason from `InnerException.Message`.
+  - Consistency: TIA Portal does not export inconsistent blocks/types. Single-item exports return `InvalidParams` advising to compile first. Bulk exports skip inconsistent items and include them in an `Inconsistent` list in the response.
   - Keeps user messages concise; structured details live in logs and context.
   - Current standardization is applied to `ExportBlock` and will be rolled out to other methods incrementally.
 

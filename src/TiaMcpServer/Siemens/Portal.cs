@@ -910,6 +910,16 @@ namespace TiaMcpServer.Siemens
                     exportPath = Path.Combine(exportPath, $"{block.Name}.xml");
                 }
 
+                // TIA Portal never exports inconsistent blocks
+                if (!block.IsConsistent)
+                {
+                    var pex = new PortalException(PortalErrorCode.InvalidState, "Block is inconsistent; TIA Portal does not export inconsistent blocks.");
+                    pex.Data["softwarePath"] = softwarePath;
+                    pex.Data["blockPath"] = blockPath;
+                    pex.Data["exportPath"] = exportPath;
+                    throw pex;
+                }
+
                 if (File.Exists(exportPath))
                 {
                     File.Delete(exportPath);
@@ -951,6 +961,16 @@ namespace TiaMcpServer.Siemens
 
             if (type != null)
             {
+                // TIA Portal never exports inconsistent types
+                if (!type.IsConsistent)
+                {
+                    var pex = new PortalException(PortalErrorCode.InvalidState, "Type is inconsistent; TIA Portal does not export inconsistent types.");
+                    pex.Data["softwarePath"] = softwarePath;
+                    pex.Data["typePath"] = typePath;
+                    pex.Data["exportPath"] = exportPath;
+                    throw pex;
+                }
+
                 if (preservePath)
                 {
                     var groupPath = "";
