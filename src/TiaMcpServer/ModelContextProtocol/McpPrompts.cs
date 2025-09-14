@@ -27,7 +27,7 @@ Common parameter values:
 - projectPath: the full path to the project file (.ap18, .ap19, .ap20, etc.) or local session file (.als18, .als19, .als20, etc.).
 
 Use the OpenProject tool with this parameter:
-- projectPath: {projectPath}""";
+- projectPath: {projectPath}";
         }
 
         [McpServerPrompt(Name = "CloseProject"), Description("Close the currently open TIA Portal project")]
