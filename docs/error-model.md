@@ -24,9 +24,9 @@ This document standardizes how errors are raised in the Siemens portal layer and
 Within `src/TiaMcpServer/Siemens/Portal.cs` methods:
 
 - Throw lightweight `PortalException` with an appropriate `Code` from locations that detect an error (validation, not-found, invalid state).
-- Use a single `catch (Exception ex)` per method:
-  - If `ex` is `PortalException pex`, attach context keys (`softwarePath`, `blockPath`/`typePath`, `exportPath`), log, and `throw;`.
-  - Otherwise wrap with `PortalException(ExportFailed, "Export failed", inner: ex)`, attach context, log, and throw the wrapped exception.
+- Use a single `catch (Exception ex)` per method and a small helper to avoid duplication:
+  - Helper attaches context keys (`softwarePath`, `blockPath`/`typePath`, `exportPath`) if missing, logs, and returns the exception to throw.
+  - If non-PortalException, the helper wraps with `PortalException(ExportFailed, "Export failed", inner: ex)` before attaching context.
 
 This ensures consistent context is present even for early-validation failures without duplicating metadata and avoids multiple catch blocks.
 
