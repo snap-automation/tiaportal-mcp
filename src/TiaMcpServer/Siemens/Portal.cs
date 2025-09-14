@@ -948,15 +948,20 @@ namespace TiaMcpServer.Siemens
         {
             _logger?.LogInformation($"Exporting type by path: {typePath}");
 
-            if (IsProjectNull())
+            try
             {
-                return null;
-            }
+                if (IsProjectNull())
+                {
+                    throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
+                }
 
-            var type = GetType(softwarePath, typePath);
+                var type = GetType(softwarePath, typePath);
 
-            if (type != null)
-            {
+                if (type == null)
+                {
+                    throw new PortalException(PortalErrorCode.NotFound, "Type not found");
+                }
+
                 // TIA Portal never exports inconsistent types
                 if (!type.IsConsistent)
                 {
@@ -978,26 +983,32 @@ namespace TiaMcpServer.Siemens
                     exportPath = Path.Combine(exportPath, $"{type.Name}.xml");
                 }
 
-                try
+                if (File.Exists(exportPath))
                 {
-                    if (File.Exists(exportPath))
-                    {
-                        File.Delete(exportPath);
-                    }
+                    File.Delete(exportPath);
+                }
 
-                    if (type.IsConsistent)
-                    {
-                        type.Export(new FileInfo(exportPath), ExportOptions.None);
-                    }
-                }
-                catch (Exception)
-                {
-                    // Console.WriteLine($"Error exporting user defined type '{typeName}': {ex.Message}");
-                    type = null;
-                }
+                type.Export(new FileInfo(exportPath), ExportOptions.None);
+
+                return type;
             }
-
-            return type;
+            catch (PortalException pex)
+            {
+                pex.Data["softwarePath"] = softwarePath;
+                pex.Data["typePath"] = typePath;
+                pex.Data["exportPath"] = exportPath;
+                _logger?.LogError(pex, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                var pex = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                pex.Data["softwarePath"] = softwarePath;
+                pex.Data["typePath"] = typePath;
+                pex.Data["exportPath"] = exportPath;
+                _logger?.LogError(pex, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
+                throw pex;
+            }
         }
 
         public bool ImportBlock(string softwarePath, string groupPath, string importPath)
