@@ -81,6 +81,7 @@ The TiaMcpServer project is a powerful tool that allows LLMs to interact with th
   - Consistency: TIA Portal does not export inconsistent blocks/types. Single-item exports return `InvalidParams` advising to compile first. Bulk exports skip inconsistent items and include them in an `Inconsistent` list in the response.
   - Keeps user messages concise; structured details live in logs and context.
   - Current standardization is applied to `ExportBlock` and will be rolled out to other methods incrementally.
+  - Exception metadata: Context keys (e.g., `softwarePath`, `blockPath`/`typePath`, `exportPath`) are attached in a single catch per portal method just before rethrow, not at inline throw sites. See `docs/error-model.md`.
 
 ## Contributing
 
