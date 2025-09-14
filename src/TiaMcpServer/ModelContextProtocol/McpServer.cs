@@ -3,6 +3,7 @@ using Microsoft.Extensions.Logging;
 using ModelContextProtocol;
 using ModelContextProtocol.Protocol;
 using ModelContextProtocol.Server;
+using Siemens.Engineering.SW;
 using Siemens.Engineering.SW.Blocks;
 using System;
 using System.Collections.Generic;
@@ -12,9 +13,8 @@ using System.Linq;
 using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
-using TiaMcpServer.Siemens;
-using Siemens.Engineering.SW;
 using System.Xml.Linq;
+using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.ModelContextProtocol
 {
@@ -882,41 +882,6 @@ namespace TiaMcpServer.ModelContextProtocol
             catch (Exception ex) when (ex is not McpException)
             {
                 throw new McpException($"Unexpected error exporting block from '{blockPath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
-            }
-        }
-
-        private static void ThrowMcpForExportBlock(PortalException pex, string softwarePath, string blockPath, string exportPath)
-        {
-            switch (pex.Code)
-            {
-                case PortalErrorCode.NotFound:
-                    {
-                        var suggestion = BuildBlockPathSuggestion(softwarePath, blockPath);
-                        var msg = $"Block not found.{suggestion}".Trim();
-                        throw new McpException(msg, McpErrorCode.InvalidParams);
-                    }
-
-                case PortalErrorCode.ExportFailed:
-                    {
-                        var reason = pex.InnerException?.Message?.Trim();
-                        var msg = string.IsNullOrEmpty(reason)
-                            ? "Failed to export block."
-                            : $"Failed to export block. Reason: {reason}";
-
-                        Logger?.LogError(pex, "MCP ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}",
-                            pex.Data?["softwarePath"], pex.Data?["blockPath"], pex.Data?["exportPath"]);
-
-                        throw new McpException(msg, McpErrorCode.InternalError);
-                    }
-
-                case PortalErrorCode.InvalidParams:
-                case PortalErrorCode.InvalidState:
-                    {
-                        throw new McpException(pex.Message, McpErrorCode.InvalidParams);
-                    }
-
-                default:
-                    throw new McpException(pex.Message, McpErrorCode.InternalError);
             }
         }
 
