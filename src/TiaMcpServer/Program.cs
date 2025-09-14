@@ -16,8 +16,6 @@ namespace TiaMcpServer
         {
             var options = CliOptions.ParseArgs(args);
 
-            options.Logging = 1;
-
             Engineering.TiaMajorVersion = options.TiaMajorVersion ?? 20;
 
             if (Engineering.TiaMajorVersion < 20)
