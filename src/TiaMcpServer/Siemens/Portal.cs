@@ -927,14 +927,21 @@ namespace TiaMcpServer.Siemens
             }
             catch (Exception ex)
             {
-                throw DecorateExportException(
-                    operation: "ExportBlock",
-                    softwarePath: softwarePath,
-                    blockPath: blockPath,
-                    typePath: null,
-                    exportPath: exportPath,
-                    ex: ex,
-                    defaultCode: PortalErrorCode.ExportFailed);
+                if (ex is PortalException pex)
+                {
+                    pex.Data["softwarePath"] = softwarePath;
+                    pex.Data["blockPath"] = blockPath;
+                    pex.Data["exportPath"] = exportPath;
+                    _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                    throw;
+                }
+
+                var wrapped = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                wrapped.Data["softwarePath"] = softwarePath;
+                wrapped.Data["blockPath"] = blockPath;
+                wrapped.Data["exportPath"] = exportPath;
+                _logger?.LogError(wrapped, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                throw wrapped;
             }
         }
 
@@ -988,43 +995,22 @@ namespace TiaMcpServer.Siemens
             }
             catch (Exception ex)
             {
-                throw DecorateExportException(
-                    operation: "ExportType",
-                    softwarePath: softwarePath,
-                    blockPath: null,
-                    typePath: typePath,
-                    exportPath: exportPath,
-                    ex: ex,
-                    defaultCode: PortalErrorCode.ExportFailed);
-            }
-        }
+                if (ex is PortalException pex)
+                {
+                    pex.Data["softwarePath"] = softwarePath;
+                    pex.Data["typePath"] = typePath;
+                    pex.Data["exportPath"] = exportPath;
+                    _logger?.LogError(pex, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
+                    throw;
+                }
 
-        private Exception DecorateExportException(
-            string operation,
-            string softwarePath,
-            string? blockPath,
-            string? typePath,
-            string exportPath,
-            Exception ex,
-            PortalErrorCode defaultCode)
-        {
-            if (ex is PortalException pex)
-            {
-                if (!pex.Data.Contains("softwarePath")) pex.Data["softwarePath"] = softwarePath;
-                if (blockPath != null && !pex.Data.Contains("blockPath")) pex.Data["blockPath"] = blockPath;
-                if (typePath != null && !pex.Data.Contains("typePath")) pex.Data["typePath"] = typePath;
-                if (!pex.Data.Contains("exportPath")) pex.Data["exportPath"] = exportPath;
-                _logger?.LogError(pex, "{Operation} failed for {SoftwarePath} {ItemPath} -> {ExportPath}", operation, softwarePath, (object?)blockPath ?? typePath ?? "-", exportPath);
-                return pex;
+                var wrapped = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                wrapped.Data["softwarePath"] = softwarePath;
+                wrapped.Data["typePath"] = typePath;
+                wrapped.Data["exportPath"] = exportPath;
+                _logger?.LogError(wrapped, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
+                throw wrapped;
             }
-
-            var wrapped = new PortalException(defaultCode, "Export failed", null, ex);
-            wrapped.Data["softwarePath"] = softwarePath;
-            if (blockPath != null) wrapped.Data["blockPath"] = blockPath;
-            if (typePath != null) wrapped.Data["typePath"] = typePath;
-            wrapped.Data["exportPath"] = exportPath;
-            _logger?.LogError(wrapped, "{Operation} failed for {SoftwarePath} {ItemPath} -> {ExportPath}", operation, softwarePath, (object?)blockPath ?? typePath ?? "-", exportPath);
-            return wrapped;
         }
 
         public bool ImportBlock(string softwarePath, string groupPath, string importPath)
