@@ -1,6 +1,14 @@
+#IDEs and AI
 .vs/
 .gemini/
 .cursor/
+
+#compilation time stuff
 bin/
 obj/
+
+#Test Results
 TestResults/
+
+#TIA Project unzipped folders
+assets/Projects/

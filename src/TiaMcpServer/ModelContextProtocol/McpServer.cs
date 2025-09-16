@@ -651,6 +651,11 @@ namespace TiaMcpServer.ModelContextProtocol
         #endregion
 
         #region blocks
+        private static object? SafeGetProperty(object obj, string propertyName)
+        {
+            var prop = obj.GetType().GetProperty(propertyName);
+            return prop?.GetValue(obj);
+        }
 
         [McpServerTool(Name = "GetBlockInfo"), Description("Get a block info, which is located in the plc software")]
         public static ResponseBlockInfo GetBlockInfo(
@@ -669,7 +674,7 @@ namespace TiaMcpServer.ModelContextProtocol
                         Message = $"Block info retrieved from '{blockPath}' in '{softwarePath}'",
                         Name = block.Name,
                         TypeName = block.GetType().Name,
-                        Namespace = block.Namespace,
+                        Namespace = SafeGetProperty(block, "Namespace")?.ToString() ?? "N/A",
                         ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage),block.ProgrammingLanguage),
                         MemoryLayout = Enum.GetName(typeof(MemoryLayout), block.MemoryLayout),
                         IsConsistent = block.IsConsistent,
@@ -1174,7 +1179,7 @@ namespace TiaMcpServer.ModelContextProtocol
                         Message = $"Type info retrieved from '{typePath}' in '{softwarePath}'",
                         Name = type.Name,
                         TypeName = type.GetType().Name,
-                        Namespace = type.Namespace,
+                        Namespace = SafeGetProperty(type, "Namespace")?.ToString() ?? "N/A",
                         IsConsistent = type.IsConsistent,
                         ModifiedDate = type.ModifiedDate,
                         IsKnowHowProtected = type.IsKnowHowProtected,

@@ -23,6 +23,15 @@ The project is organized into the following directories:
     *   `State.cs`: This file defines the `State` class, which represents the state of the TIA Portal.
     *   `Openness.cs`: This file provides a wrapper around the Siemens TIA Portal Openness API.
 *   **`Properties/`**: This directory contains the project's properties, such as the assembly information and launch settings.
+*   **`tests/`**: This directory contains the test project for the TiaMcpServer application.
+    *   `TiaMcpServer.Test/`: This project contains a suite of tests for the TiaMcpServer, including unit tests and integration tests. The tests are structured to cover the entire functionality of the application, from connecting to the TIA Portal to interacting with projects, devices, and blocks. The tests are organized into the following classes:
+        *   `Test1Portal.cs`: Tests for connecting and disconnecting from the TIA Portal.
+        *   `Test21Project.cs`: Tests for working with TIA Portal projects.
+        *   `Test22Session.cs`: Tests for working with TIA Portal sessions.
+        *   `Test2ProjectSession.cs`: Tests for working with both projects and sessions.
+        *   `Test3Devices.cs`: Tests for working with devices.
+        *   `Test4Software.cs`: Tests for working with PLC software, including compiling, exporting, and importing blocks and types.
+        *   `Test5McpServer.cs`: Tests for the MCP server methods.
 
 ## 3. Architecture
 
@@ -44,10 +53,11 @@ The TiaMcpServer project provides the following functionality:
 *   **Working with blocks:** The `GetBlockInfo`, `GetBlocks`, `GetBlocksWithHierarchy`, `ExportBlock`, `ImportBlock`, and `ExportBlocks` tools allow the LLM to work with blocks.
 *   **Working with types:** The `GetTypeInfo`, `GetTypes`, `ExportType`, `ImportType`, and `ExportTypes` tools allow the LLM to work with types.
 *   **Exporting blocks as documents:** The `ExportAsDocuments` and `ExportBlocksAsDocuments` tools allow the LLM to export blocks as documents.
+*   **Testing:** The project includes a comprehensive test suite that covers all the major functionalities of the application. The tests are organized into different categories, including portal operations, project and session management, device and software management, and MCP server operations. This ensures the reliability and stability of the application.
 
 ## 5. Conclusion
 
-The TiaMcpServer project is a powerful tool that allows LLMs to interact with the Siemens TIA Portal. The project is well-structured and easy to understand. The code is well-commented and follows best practices.
+The TiaMcpServer project is a powerful tool that allows LLMs to interact with the Siemens TIA Portal. The project is well-structured and easy to understand. The code is well-commented and follows best practices. The inclusion of a comprehensive test suite ensures the reliability and stability of the application, making it a robust solution for integrating LLMs with the TIA Portal.
 
 ## 6. Future Improvements
 

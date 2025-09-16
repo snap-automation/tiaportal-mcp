@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using Siemens.Engineering;
 using System;
 using TiaMcpServer.Siemens;
@@ -9,17 +9,13 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public sealed class Test22Session
     {
-        private bool _isInitialized = false;
+        
         private Portal? _portal;
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!_isInitialized)
-            {
-                Openness.Initialize();
-            }
-
+            
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -37,7 +33,7 @@ namespace TiaMcpServer.Test
         {
             if (_portal != null)
             {
-                _portal.CloseSession();
+                _portal.Dispose();
             }
         }
 
@@ -64,17 +60,22 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Session1ProjectPath)]
-        public void Test_222_OpenSession(string path)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_222_OpenSession(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive("Skipping test for different TIA version.");
+            if (!testCase.MultiUser)
+                Assert.Inconclusive("Skipping non-multi-user test case.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            var result = _portal.OpenSession(path);
+            var result = _portal.OpenSession(testCase.ProjectPath);
 
-            Console.WriteLine($"OpenSession: {path}, result={result}");
+            Console.WriteLine($"OpenSession: {testCase.ProjectPath}, result={result}");
 
             Assert.IsTrue(result, "Failed to open session");
         }
@@ -102,35 +103,45 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Session1ProjectPath)]
-        public void Test_224_CloseSession(string path)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_224_CloseSession(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive("Skipping test for different TIA version.");
+            if (!testCase.MultiUser)
+                Assert.Inconclusive("Skipping non-multi-user test case.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            var result = _portal.OpenSession(path);
+            var result = _portal.OpenSession(testCase.ProjectPath);
             result &= _portal.CloseSession();
 
-            Console.WriteLine($"CloseSession: {path}, result={result}");
+            Console.WriteLine($"CloseSession: {testCase.ProjectPath}, result={result}");
 
             Assert.IsTrue(result, "Failed to close session");
         }
 
         [TestMethod]
-        [DataRow(Settings.Session1ProjectPath)]
-        public void Test_225_SaveSession(string path)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_225_SaveSession(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive("Skipping test for different TIA version.");
+            if (!testCase.MultiUser)
+                Assert.Inconclusive("Skipping non-multi-user test case.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            var result = _portal.OpenSession(path);
+            var result = _portal.OpenSession(testCase.ProjectPath);
             result &= _portal.SaveSession();
 
-            Console.WriteLine($"SaveSession: {path}, result={result}");
+            Console.WriteLine($"SaveSession: {testCase.ProjectPath}, result={result}");
 
             Assert.IsTrue(result, "Failed to save session");
         }

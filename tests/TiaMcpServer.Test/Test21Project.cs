@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using TiaMcpServer.Siemens;
 
@@ -8,17 +8,11 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public sealed class Test21Project
     {
-        private bool _isInitialized = false;
         private Portal? _portal;
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!_isInitialized)
-            {
-                Openness.Initialize();
-            }
-
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -66,20 +60,23 @@ namespace TiaMcpServer.Test
             // Assert.IsTrue(projects?.Count > 0, "No open projects found");
         }
 
-        
-
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath)]
-        public void Test_212_OpenProject(string path)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_212_OpenProject(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+            if (testCase.MultiUser)
+                Assert.Inconclusive("Skipping multi-user test case for this test class.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            var result = _portal.OpenProject(path);
+            var result = _portal.OpenProject(testCase.ProjectPath);
 
-            Console.WriteLine($"OpenProject: {path}, result={result}");
+            Console.WriteLine($"OpenProject: {testCase.ProjectPath}, result={result}");
 
             Assert.IsTrue(result, "Failed to open project");
         }
@@ -109,50 +106,65 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath)]
-        public void Test_214_CloseProject(string path)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_214_CloseProject(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+            if (testCase.MultiUser)
+                Assert.Inconclusive("Skipping multi-user test case for this test class.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            var result = _portal.OpenProject(path);
+            var result = _portal.OpenProject(testCase.ProjectPath);
             result &= _portal.CloseProject();
 
-            Console.WriteLine($"CloseProject: {path}, result={result}");
+            Console.WriteLine($"CloseProject: {testCase.ProjectPath}, result={result}");
 
             Assert.IsTrue(result, "Failed to close project");
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath)]
-        public void Test_215_SaveProject(string path)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_215_SaveProject(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+            if (testCase.MultiUser)
+                Assert.Inconclusive("Skipping multi-user test case for this test class.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            var result = _portal.OpenProject(path);
+            var result = _portal.OpenProject(testCase.ProjectPath);
             result &= _portal.SaveProject();
 
-            Console.WriteLine($"SaveProject: {path}, result={result}");
+            Console.WriteLine($"SaveProject: {testCase.ProjectPath}, result={result}");
 
             Assert.IsTrue(result, "Failed to save project");
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PathNew)]
-        public void Test_216_SaveAsProject(string path, string newPath)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_216_SaveAsProject(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive($"Skipping test for version {testCase.Version}.");
+            if (testCase.MultiUser)
+                Assert.Inconclusive("Skipping multi-user test case for this test class.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            var result = _portal.OpenProject(path);
-            result &= _portal.SaveAsProject(newPath);
+            var result = _portal.OpenProject(testCase.ProjectPath);
+            result &= _portal.SaveAsProject(testCase.ExportRoot);
 
             Assert.IsTrue(result, "Failed to save project as new project");
         }

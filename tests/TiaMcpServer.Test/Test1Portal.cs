@@ -1,5 +1,6 @@
 ﻿using Microsoft.CodeCoverage.Core;
 using Microsoft.Extensions.Logging;
+using System;
 using TiaMcpServer.Siemens;
 
 namespace TiaMcpServer.Test
@@ -8,17 +9,11 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public sealed class Test1Portal
     {
-        private bool _isInitialized = false;
         private Portal? _portal;
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!_isInitialized)
-            {
-                Openness.Initialize();
-            }
-
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -77,6 +72,6 @@ namespace TiaMcpServer.Test
             Assert.IsTrue(result, "Failed to connect to TIA-Portal");
         }
 
-        
+
     }
 }

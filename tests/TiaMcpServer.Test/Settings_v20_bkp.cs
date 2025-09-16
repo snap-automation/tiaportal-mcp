@@ -1,6 +1,6 @@
 ﻿namespace TiaMcpServer.Test
 {
-    internal static class Settings
+    internal static class Settings_v20_bkp
     {
 
         // MultiUser Project 'TestSession1'

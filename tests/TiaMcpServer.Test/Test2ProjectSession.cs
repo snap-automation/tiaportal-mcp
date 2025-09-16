@@ -1,4 +1,4 @@
-﻿using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging;
 using System;
 using TiaMcpServer.Siemens;
 
@@ -8,17 +8,13 @@ namespace TiaMcpServer.Test
     [DoNotParallelize]
     public class Test2ProjectSession
     {
-        private bool _isInitialized = false;
+        
         private Portal? _portal;
 
         [TestInitialize]
         public void ClassInit()
         {
-            if (!_isInitialized)
-            {
-                Openness.Initialize();
-            }
-
+            
             var loggerFactory = LoggerFactory.Create(builder =>
             {
                 builder.AddConsole(); // or AddDebug(), AddTraceSource(), etc.
@@ -36,7 +32,7 @@ namespace TiaMcpServer.Test
         {
             if (_portal != null)
             {
-                //_portal.CloseSession();
+                _portal.Dispose();
             }
         }
 
@@ -66,20 +62,22 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath)]
-        [DataRow(Settings.Session1ProjectPath)]
-        public void Test_21_GetProjectTree(string projectPath)
+        [DynamicData(nameof(TiaTestCases.GetTestCases), typeof(TiaTestCases))]
+        public void Test_21_GetProjectTree(SimpleTiaTestCase testCase)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive("Skipping test for different TIA version.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
             var result = _portal.GetProjectTree();
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Console.WriteLine($"GetProjectTree:");
             Console.WriteLine(result);
@@ -88,20 +86,22 @@ namespace TiaMcpServer.Test
         }
 
         [TestMethod]
-        [DataRow(Settings.Project1ProjectPath, Settings.Project1PlcSoftwarePath0)]
-        [DataRow(Settings.Session1ProjectPath, Settings.Session1PlcSoftwarePath)]
-        public void Test_22_GetSoftwareTree(string projectPath, string softwarePath)
+        [DynamicData(nameof(TiaTestCases.GetDeviceItemSource), typeof(TiaTestCases))]
+        public void Test_22_GetSoftwareTree(SimpleTiaTestCase testCase, string softwarePath)
         {
+            if (testCase.Version != Engineering.TiaMajorVersion)
+                Assert.Inconclusive("Skipping test for different TIA version.");
+
             if (_portal == null)
             {
                 Assert.Fail("TiaPortal instance is not initialized");
             }
 
-            bool success = Common.OpenProject(_portal, projectPath);
+            bool success = Common.OpenProject(_portal, testCase.ProjectPath);
 
             var result = _portal.GetSoftwareTree(softwarePath);
 
-            success &= Common.CloseProject(_portal, projectPath);
+            success &= Common.CloseProject(_portal, testCase.ProjectPath);
 
             Console.WriteLine($"GetSoftwareTree:");
             Console.WriteLine(result);
