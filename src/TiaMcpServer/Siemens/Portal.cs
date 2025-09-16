@@ -1305,11 +1305,11 @@ namespace TiaMcpServer.Siemens
                         catch (EngineeringNotSupportedException ex)
                         {
                             // The export or import of blocks with mixed programming languages is not possible
-                            throw new Exception($"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}");
+                            throw new PortalException(PortalErrorCode.ExportFailed, $"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}", null, ex);
                         }
                         catch (Exception ex)
                         {
-                            throw new Exception($"Exception at block '{blockName}'. {ex.Message}");
+                            throw new PortalException(PortalErrorCode.ExportFailed, $"Exception at block '{blockName}'. {ex.Message}", null, ex);
                         }
 
                     }
@@ -1432,7 +1432,7 @@ namespace TiaMcpServer.Siemens
                     }
                     catch (EngineeringNotSupportedException ex)
                     {
-                        throw new Exception($"EngineeringNotSupportedException at file '{fileNameWithoutExtension}'. {ex.Message}");
+                        throw new PortalException(PortalErrorCode.ExportFailed, $"EngineeringNotSupportedException at file '{fileNameWithoutExtension}'. {ex.Message}", null, ex);
                     }
 
                     if (result != null && result.State == DocumentResultState.Success)
