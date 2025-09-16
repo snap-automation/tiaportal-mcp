@@ -1,4 +1,4 @@
-# Error Model and Exception Metadata
+﻿# Error Model and Exception Metadata
 
 This document standardizes how errors are raised in the Siemens portal layer and mapped to MCP responses, and where exception metadata is attached for consistency and observability.
 
@@ -24,11 +24,26 @@ This document standardizes how errors are raised in the Siemens portal layer and
 Within `src/TiaMcpServer/Siemens/Portal.cs` methods:
 
 - Throw lightweight `PortalException` with an appropriate `Code` from locations that detect an error (validation, not-found, invalid state).
-- Use a single `catch (Exception ex)` per method:
-  - If `ex` is `PortalException pex`, attach context keys (`softwarePath`, `blockPath`/`typePath`, `exportPath`), log, and `throw;`.
-  - Otherwise wrap with `PortalException(ExportFailed, "Export failed", inner: ex)`, attach context, log, and throw the wrapped exception.
+- Use a single `catch (Exception ex)` per method and funnel into the canonical wrapping pattern (see `ExportBlock`):
 
-This ensures consistent context is present even for early-validation failures without duplicating metadata and avoids multiple catch blocks.
+```csharp
+catch (Exception ex)
+{
+    var pex = ex as PortalException ?? new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+
+    pex.Data["softwarePath"] = softwarePath;
+    pex.Data["blockPath"] = blockPath;
+    pex.Data["exportPath"] = exportPath;
+
+    _logger?.LogError(pex, "{MethodName} failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+    throw pex;
+}
+```
+
+  - Always attach metadata and log inside this single block; avoid branching on `ex` type or duplicating metadata assignments elsewhere.
+  - Keep C# portal-layer files encoded as UTF-8 with BOM (Windows "UTF-8 signature") and CRLF line endings so Siemens tooling keeps metadata intact.
+
+This keeps the decoration and logging in one place, avoids repeated code, and guarantees consistent context even for early-validation failures.
 
 ## MCP Mapping
 
@@ -42,3 +57,8 @@ This ensures consistent context is present even for early-validation failures wi
   - `ResponseExportBlocks`: `Items` (exported), `Inconsistent` (skipped)
   - `ResponseExportTypes`: `Items` (exported), `Inconsistent` (skipped)
 - `Meta` contains counts for totals, exported, and inconsistent.
+
+## Formatting
+
+- Portal-layer C# files and their unit tests must retain Windows CRLF line endings to avoid newline parsing faults during deploy scripts.
+- Markdown docs in this repo should also use CRLF and UTF-8 with BOM when committed from Windows to prevent the "UTF-8 signature" warnings the tooling flags.

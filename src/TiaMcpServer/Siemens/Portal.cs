@@ -1320,18 +1320,12 @@ namespace TiaMcpServer.Siemens
             }
             catch (Exception ex)
             {
-                if (ex is PortalException pe)
-                {
-                    pe.Data["softwarePath"] = softwarePath;
-                    pe.Data["blockPath"] = blockPath;
-                    pe.Data["exportPath"] = exportPath;
-                    _logger?.LogError(pe, "ExportAsDocuments failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
-                    throw; // preserve original PortalException stack
-                }
-                var pex = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                var pex = ex as PortalException ?? new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+
                 pex.Data["softwarePath"] = softwarePath;
                 pex.Data["blockPath"] = blockPath;
                 pex.Data["exportPath"] = exportPath;
+
                 _logger?.LogError(pex, "ExportAsDocuments failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
                 throw pex;
             }
