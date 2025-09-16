@@ -314,12 +314,14 @@ namespace TiaMcpServer.Siemens
                 return null;
             }
 
+            var project = _project!;
+
             var info = new
             {
-                Name = _project.Name,
-                Path = _project.Path,
-                Type = _project.GetType().Name,
-                IsMultiuserProject = _project is MultiuserProject,
+                Name = project.Name,
+                Path = project.Path,
+                Type = project.GetType().Name,
+                IsMultiuserProject = project is MultiuserProject,
                 IsLocalSession = _session != null,
                 IsLocalProject = _session == null
             };
@@ -1815,13 +1817,21 @@ namespace TiaMcpServer.Siemens
                     // Add blocks section
                     if (hasBlocks)
                     {
-                        sections.Add(() => GetSoftwareTreeBlockGroup(sb, plcSoftware.BlockGroup, ancestorStates, "Program blocks", !hasTypes));
+                        var blockGroup = plcSoftware.BlockGroup;
+                        if (blockGroup != null)
+                        {
+                            sections.Add(() => GetSoftwareTreeBlockGroup(sb, blockGroup, ancestorStates, "Program blocks", !hasTypes));
+                        }
                     }
                     
                     // Add types section
                     if (hasTypes)
                     {
-                        sections.Add(() => GetSoftwareTreeTypeGroup(sb, plcSoftware.TypeGroup, ancestorStates, "PLC data types", true));
+                        var typeGroup = plcSoftware.TypeGroup;
+                        if (typeGroup != null)
+                        {
+                            sections.Add(() => GetSoftwareTreeTypeGroup(sb, typeGroup, ancestorStates, "PLC data types", true));
+                        }
                     }
                     
                     
