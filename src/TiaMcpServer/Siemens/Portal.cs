@@ -12,6 +12,7 @@ using Siemens.Engineering.SW.Blocks;
 using Siemens.Engineering.SW.Types;
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -910,6 +911,12 @@ namespace TiaMcpServer.Siemens
                     exportPath = Path.Combine(exportPath, $"{block.Name}.xml");
                 }
 
+                // TIA Portal never exports inconsistent blocks
+                if (!block.IsConsistent)
+                {
+                    throw new PortalException(PortalErrorCode.InvalidState, "Block is inconsistent; TIA Portal does not export inconsistent blocks.");
+                }
+
                 if (File.Exists(exportPath))
                 {
                     File.Delete(exportPath);
@@ -919,20 +926,15 @@ namespace TiaMcpServer.Siemens
 
                 return block;
             }
-            catch (PortalException pex)
-            {
-                pex.Data["softwarePath"] = softwarePath;
-                pex.Data["blockPath"] = blockPath;
-                pex.Data["exportPath"] = exportPath;
-                _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
-                throw;
-            }
             catch (Exception ex)
             {
-                var pex = new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+                //If the exception is already a PortalException, use it; otherwise, wrap it in a new PortalException
+                var pex = ex as PortalException ?? new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+
                 pex.Data["softwarePath"] = softwarePath;
                 pex.Data["blockPath"] = blockPath;
                 pex.Data["exportPath"] = exportPath;
+
                 _logger?.LogError(pex, "ExportBlock failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
                 throw pex;
             }
@@ -942,15 +944,26 @@ namespace TiaMcpServer.Siemens
         {
             _logger?.LogInformation($"Exporting type by path: {typePath}");
 
-            if (IsProjectNull())
+            try
             {
-                return null;
-            }
+                if (IsProjectNull())
+                {
+                    throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
+                }
 
-            var type = GetType(softwarePath, typePath);
+                var type = GetType(softwarePath, typePath);
 
-            if (type != null)
-            {
+                if (type == null)
+                {
+                    throw new PortalException(PortalErrorCode.NotFound, "Type not found");
+                }
+
+                // TIA Portal never exports inconsistent types
+                if (!type.IsConsistent)
+                {
+                    throw new PortalException(PortalErrorCode.InvalidState, "Type is inconsistent; TIA Portal does not export inconsistent types.");
+                }
+
                 if (preservePath)
                 {
                     var groupPath = "";
@@ -966,26 +979,26 @@ namespace TiaMcpServer.Siemens
                     exportPath = Path.Combine(exportPath, $"{type.Name}.xml");
                 }
 
-                try
+                if (File.Exists(exportPath))
                 {
-                    if (File.Exists(exportPath))
-                    {
-                        File.Delete(exportPath);
-                    }
+                    File.Delete(exportPath);
+                }
 
-                    if (type.IsConsistent)
-                    {
-                        type.Export(new FileInfo(exportPath), ExportOptions.None);
-                    }
-                }
-                catch (Exception)
-                {
-                    // Console.WriteLine($"Error exporting user defined type '{typeName}': {ex.Message}");
-                    type = null;
-                }
+                type.Export(new FileInfo(exportPath), ExportOptions.None);
+
+                return type;
             }
+            catch (Exception ex)
+            {
+                var pex = ex as PortalException ?? new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
 
-            return type;
+                if (!pex.Data.Contains("softwarePath")) pex.Data["softwarePath"] = softwarePath;
+                if (!pex.Data.Contains("typePath")) pex.Data["typePath"] = typePath;
+                if (!pex.Data.Contains("exportPath")) pex.Data["exportPath"] = exportPath;
+
+                _logger?.LogError(pex, "ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}", softwarePath, typePath, exportPath);
+                throw pex;
+            }
         }
 
         public bool ImportBlock(string softwarePath, string groupPath, string importPath)
@@ -1224,21 +1237,19 @@ namespace TiaMcpServer.Siemens
         {
             _logger?.LogInformation($"Exporting block as documents by path: {blockPath}");
 
-            if (IsProjectNull())
-            {
-                return false;
-            }
-
-            if (Engineering.TiaMajorVersion < 20)
-            {
-                _logger?.LogWarning("ExportAsDocuments is only supported on TIA Portal V20 or newer");
-                return false;
-            }
-
-            var success = false;
-
             try
             {
+                if (IsProjectNull())
+                {
+                    throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
+                }
+
+                if (Engineering.TiaMajorVersion < 20)
+                {
+                    throw new PortalException(PortalErrorCode.InvalidState, "ExportAsDocuments requires TIA Portal V20 or newer");
+                }
+
+                var success = false;
                 var softwareContainer = GetSoftwareContainer(softwarePath);
                 if (softwareContainer?.Software is PlcSoftware plcSoftware)
                 {
@@ -1294,13 +1305,11 @@ namespace TiaMcpServer.Siemens
                         catch (EngineeringNotSupportedException ex)
                         {
                             // The export or import of blocks with mixed programming languages is not possible
-                            // Console.WriteLine($"Error exporting block as document: {ex.Message}");
-                            throw new Exception($"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}");
+                            throw new PortalException(PortalErrorCode.ExportFailed, $"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}", null, ex);
                         }
                         catch (Exception ex)
                         {
-                            // Console.WriteLine($"Error creating export directory: {ex.Message}");
-                            throw new Exception($"Exception at block '{blockName}'. {ex.Message}");
+                            throw new PortalException(PortalErrorCode.ExportFailed, $"Exception at block '{blockName}'. {ex.Message}", null, ex);
                         }
 
                     }
@@ -1309,11 +1318,17 @@ namespace TiaMcpServer.Siemens
 
 
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Console.WriteLine($"Error exporting blocks as documents: {ex.Message}");
+                var pex = ex as PortalException ?? new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+
+                pex.Data["softwarePath"] = softwarePath;
+                pex.Data["blockPath"] = blockPath;
+                pex.Data["exportPath"] = exportPath;
+
+                _logger?.LogError(pex, "ExportAsDocuments failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                throw pex;
             }
-            return success;
         }
 
         // TIA portal crashes when exporting blocks as documents, :-(
@@ -1411,7 +1426,7 @@ namespace TiaMcpServer.Siemens
                     }
                     catch (EngineeringNotSupportedException ex)
                     {
-                        throw new Exception($"EngineeringNotSupportedException at file '{fileNameWithoutExtension}'. {ex.Message}");
+                        throw new PortalException(PortalErrorCode.ExportFailed, $"EngineeringNotSupportedException at file '{fileNameWithoutExtension}'. {ex.Message}", null, ex);
                     }
 
                     if (result != null && result.State == DocumentResultState.Success)

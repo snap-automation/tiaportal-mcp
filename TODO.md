@@ -112,7 +112,7 @@ Centralized list of actionable improvements gathered from initial repo review. U
   Affected: `ImportBlock`, `ExportBlocks`, `ExportType`, `ImportType`, `ExportBlocksAsDocuments`, `ImportFromDocuments`, etc.
   Rules:
   - Short messages + `PortalErrorCode` only (no param echoing in message)
-  - Attach context in `Exception.Data` close to the throw (function-specific keys)
+  - Attach context in `Exception.Data` in a single catch per portal method, just before rethrow (see docs/error-model.md)
   - Preserve `InnerException` for operation failures and log once with structured fields
 
 - [ ] Add helpers for path resolution parity

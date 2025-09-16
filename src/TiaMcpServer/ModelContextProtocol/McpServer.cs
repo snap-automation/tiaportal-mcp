@@ -1020,6 +1020,33 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 // Export blocks asynchronously
                 var exportedBlocks = await Task.Run(() => Portal.ExportBlocks(softwarePath, exportPath, regexName, preservePath));
+
+                // Build list of inconsistent (skipped) blocks for reporting
+                var inconsistentInfos = new List<ResponseBlockInfo>();
+                if (allBlocks != null)
+                {
+                    foreach (var b in allBlocks)
+                    {
+                        if (b != null && b.IsConsistent == false)
+                        {
+                            var attrs = Helper.GetAttributeList(b);
+                            inconsistentInfos.Add(new ResponseBlockInfo
+                            {
+                                Name = b.Name,
+                                TypeName = b.GetType().Name,
+                                Namespace = b.Namespace,
+                                ProgrammingLanguage = Enum.GetName(typeof(ProgrammingLanguage), b.ProgrammingLanguage),
+                                MemoryLayout = Enum.GetName(typeof(MemoryLayout), b.MemoryLayout),
+                                IsConsistent = b.IsConsistent,
+                                HeaderName = b.HeaderName,
+                                ModifiedDate = b.ModifiedDate,
+                                IsKnowHowProtected = b.IsKnowHowProtected,
+                                Attributes = attrs,
+                                Description = b.ToString()
+                            });
+                        }
+                    }
+                }
                 
                 // Send progress update after export completion
                 if (exportedBlocks != null && progressToken != null)
@@ -1082,12 +1109,14 @@ namespace TiaMcpServer.ModelContextProtocol
                     {
                         Message = $"Export completed: {processedCount} blocks with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
                         Items = responseList,
+                        Inconsistent = inconsistentInfos,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
                             ["success"] = true,
                             ["totalBlocks"] = totalBlocks,
                             ["exportedBlocks"] = processedCount,
+                            ["inconsistentBlocks"] = inconsistentInfos.Count,
                             ["duration"] = duration
                         }
                     };
@@ -1250,6 +1279,27 @@ namespace TiaMcpServer.ModelContextProtocol
                     throw new McpException($"Failed exporting type from '{typePath}' to '{exportPath}'", McpErrorCode.InternalError);
                 }
             }
+            catch (TiaMcpServer.Siemens.PortalException pex)
+            {
+                switch (pex.Code)
+                {
+                    case TiaMcpServer.Siemens.PortalErrorCode.NotFound:
+                        throw new McpException("Type not found.", McpErrorCode.InvalidParams);
+                    case TiaMcpServer.Siemens.PortalErrorCode.InvalidState:
+                    case TiaMcpServer.Siemens.PortalErrorCode.InvalidParams:
+                        throw new McpException(pex.Message, McpErrorCode.InvalidParams);
+                    case TiaMcpServer.Siemens.PortalErrorCode.ExportFailed:
+                        {
+                            var reason = pex.InnerException?.Message?.Trim();
+                            var msg = "Failed to export type.";
+                            if (!string.IsNullOrEmpty(reason)) msg += $" Reason: {reason}";
+                            Logger?.LogError(pex, "MCP ExportType failed for {SoftwarePath} {TypePath} -> {ExportPath}",
+                                pex.Data?["softwarePath"], pex.Data?["typePath"], pex.Data?["exportPath"]);
+                            throw new McpException(msg, McpErrorCode.InternalError);
+                        }
+                }
+                throw new McpException(pex.Message, McpErrorCode.InternalError);
+            }
             catch (Exception ex) when (ex is not McpException)
             {
                 throw new McpException($"Unexpected error exporting type from '{typePath}' to '{exportPath}': {ex.Message}", ex, McpErrorCode.InternalError);
@@ -1349,6 +1399,30 @@ namespace TiaMcpServer.ModelContextProtocol
 
                 // Export types asynchronously
                 var exportedTypes = await Task.Run(() => Portal.ExportTypes(softwarePath, exportPath, regexName, preservePath));
+
+                // Build list of inconsistent (skipped) types for reporting
+                var inconsistentTypeInfos = new List<ResponseTypeInfo>();
+                if (allTypes != null)
+                {
+                    foreach (var t in allTypes)
+                    {
+                        if (t != null && t.IsConsistent == false)
+                        {
+                            var attrs = Helper.GetAttributeList(t);
+                            inconsistentTypeInfos.Add(new ResponseTypeInfo
+                            {
+                                Name = t.Name,
+                                TypeName = t.GetType().Name,
+                                Namespace = t.Namespace,
+                                IsConsistent = t.IsConsistent,
+                                ModifiedDate = t.ModifiedDate,
+                                IsKnowHowProtected = t.IsKnowHowProtected,
+                                Attributes = attrs,
+                                Description = t.ToString()
+                            });
+                        }
+                    }
+                }
                 
                 // Send progress update after export completion
                 if (exportedTypes != null && progressToken != null)
@@ -1408,12 +1482,14 @@ namespace TiaMcpServer.ModelContextProtocol
                     {
                         Message = $"Export completed: {processedCount} types with regex '{regexName}' exported from '{softwarePath}' to '{exportPath}'",
                         Items = responseList,
+                        Inconsistent = inconsistentTypeInfos,
                         Meta = new JsonObject
                         {
                             ["timestamp"] = DateTime.Now,
                             ["success"] = true,
                             ["totalTypes"] = totalTypes,
                             ["exportedTypes"] = processedCount,
+                            ["inconsistentTypes"] = inconsistentTypeInfos.Count,
                             ["duration"] = duration
                         }
                     };
