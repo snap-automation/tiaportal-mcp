@@ -12,7 +12,6 @@ using Siemens.Engineering.SW.Blocks;
 using Siemens.Engineering.SW.Types;
 using System;
 using System.Collections.Generic;
-using System.Drawing;
 using System.IO;
 using System.Linq;
 using System.Net;
@@ -1236,7 +1235,7 @@ namespace TiaMcpServer.Siemens
         public bool ExportAsDocuments(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
         {
             _logger?.LogInformation($"Exporting block as documents by path: {blockPath}");
-
+            var success = false;
             try
             {
                 if (IsProjectNull())
@@ -1249,7 +1248,7 @@ namespace TiaMcpServer.Siemens
                     throw new PortalException(PortalErrorCode.InvalidState, "ExportAsDocuments requires TIA Portal V20 or newer");
                 }
 
-                var success = false;
+                
                 var softwareContainer = GetSoftwareContainer(softwarePath);
                 if (softwareContainer?.Software is PlcSoftware plcSoftware)
                 {
@@ -1329,6 +1328,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(pex, "ExportAsDocuments failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
                 throw pex;
             }
+            return success;
         }
 
         // TIA portal crashes when exporting blocks as documents, :-(
