@@ -1,4 +1,4 @@
-# Agents Guide
+﻿# Agents Guide
 
 This repository can be used with agentic coding assistants. Follow these guidelines to collaborate safely and efficiently.
 
@@ -30,3 +30,9 @@ Use clear, actionable language. For example:
 - If a command fails due to environment limitations, do not retry destructively; report the exact failure and suggest alternatives.
 - Document any meaningful limitations or deviations in the commit message or relevant README, per the Contributor Guidelines.
 
+
+## Formatting & Encoding
+
+- Preserve existing indentation style (tabs vs. spaces).
+- Do not modify file encodings; keep UTF-8 BOM where present.
+- Ensure Windows CRLF line endings are retained when editing files.
